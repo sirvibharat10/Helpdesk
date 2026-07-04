@@ -1,25 +1,45 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import Button from "../components/Button";
 import Input from "../components/Input";
 
+const loginSchema = z.object({
+  email: z.string().email("Invalid email"),
+  password: z.string().min(6, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const { setAuth } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
+
+  const handleLogin = async (data: LoginFormValues) => {
     setLoading(true);
     setError("");
 
     try {
-      const result: any = await api.login(email, password);
+      const result: any = await api.login(data.email, data.password);
       setAuth(result.token, result.user);
       navigate("/dashboard");
     } catch (err) {
@@ -31,11 +51,9 @@ const LoginPage: React.FC = () => {
 
   const fillCredentials = (role: "ADMIN" | "AGENT") => {
     if (role === "ADMIN") {
-      setEmail("admin@sahayak.ai");
-      setPassword("admin123");
+      reset({ email: "admin@sahayak.ai", password: "admin123" });
     } else {
-      setEmail("agent@sahayak.ai");
-      setPassword("agent123");
+      reset({ email: "agent@sahayak.ai", password: "agent123" });
     }
   };
 
@@ -68,7 +86,11 @@ const LoginPage: React.FC = () => {
             <p className="text-slate-600">Access your SahaYak AI dashboard</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form
+            noValidate
+            onSubmit={handleSubmit(handleLogin)}
+            className="space-y-6"
+          >
             {error && (
               <div className="p-4 bg-red-100 text-red-700 rounded-lg text-sm">
                 {error}
@@ -78,19 +100,17 @@ const LoginPage: React.FC = () => {
             <Input
               label="Email"
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              required
+              {...register("email")}
+              error={errors.email?.message}
             />
 
             <Input
               label="Password"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              required
+              {...register("password")}
+              error={errors.password?.message}
             />
 
             <Button type="submit" loading={loading} className="w-full">

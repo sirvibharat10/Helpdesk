@@ -1,4 +1,8 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+type ImportMetaEnv = { VITE_API_URL?: string };
+type ImportMetaWithEnv = ImportMeta & { env: ImportMetaEnv };
+
+export const API_BASE_URL =
+  (import.meta as ImportMetaWithEnv).env.VITE_API_URL || "/api";
 
 export const api = {
   async request<T>(
@@ -6,13 +10,13 @@ export const api = {
     options: RequestInit & { method?: string } = {},
   ): Promise<T> {
     const token = localStorage.getItem("auth_token");
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...((options.headers as Record<string, string>) || {}),
     };
 
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

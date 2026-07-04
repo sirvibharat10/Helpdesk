@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Button from "../components/Button";
@@ -14,11 +17,29 @@ const TicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newTicket, setNewTicket] = useState({
-    subject: "",
-    body: "",
-    fromEmail: "",
-    fromName: "",
+
+  const createTicketSchema = z.object({
+    subject: z.string().min(1, "Subject is required"),
+    body: z.string().min(10, "Description is required"),
+    fromEmail: z.string().email("Invalid email"),
+    fromName: z.string().min(1, "Name is required"),
+  });
+
+  type CreateTicketFormValues = z.infer<typeof createTicketSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateTicketFormValues>({
+    resolver: zodResolver(createTicketSchema),
+    defaultValues: {
+      subject: "",
+      body: "",
+      fromEmail: "",
+      fromName: "",
+    },
   });
 
   const [filters, setFilters] = useState({
@@ -43,12 +64,11 @@ const TicketsPage: React.FC = () => {
     }
   };
 
-  const handleCreateTicket = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateTicket = async (data: CreateTicketFormValues) => {
     try {
-      await api.createTicket(newTicket);
+      await api.createTicket(data);
       setCreateDialogOpen(false);
-      setNewTicket({ subject: "", body: "", fromEmail: "", fromName: "" });
+      reset();
       fetchTickets();
     } catch (error) {
       alert("Failed to create ticket");
@@ -187,44 +207,40 @@ const TicketsPage: React.FC = () => {
         onOpenChange={setCreateDialogOpen}
         title="Create New Ticket"
       >
-        <form onSubmit={handleCreateTicket} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={handleSubmit(handleCreateTicket)}
+          className="space-y-4"
+        >
           <Input
             label="Subject"
             required
-            value={newTicket.subject}
-            onChange={(e) =>
-              setNewTicket({ ...newTicket, subject: e.target.value })
-            }
             placeholder="Ticket subject"
+            {...register("subject")}
+            error={errors.subject?.message}
           />
           <Textarea
             label="Description"
             required
-            value={newTicket.body}
-            onChange={(e) =>
-              setNewTicket({ ...newTicket, body: e.target.value })
-            }
             placeholder="Ticket description"
             rows={4}
+            {...register("body")}
+            error={errors.body?.message}
           />
           <Input
             label="From Name"
             required
-            value={newTicket.fromName}
-            onChange={(e) =>
-              setNewTicket({ ...newTicket, fromName: e.target.value })
-            }
             placeholder="Customer name"
+            {...register("fromName")}
+            error={errors.fromName?.message}
           />
           <Input
             label="From Email"
             type="email"
             required
-            value={newTicket.fromEmail}
-            onChange={(e) =>
-              setNewTicket({ ...newTicket, fromEmail: e.target.value })
-            }
             placeholder="customer@example.com"
+            {...register("fromEmail")}
+            error={errors.fromEmail?.message}
           />
           <Button type="submit" className="w-full">
             Create Ticket

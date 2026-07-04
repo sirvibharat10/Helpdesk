@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { api } from "../lib/api";
-import { useAuth } from "../lib/auth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import Button from "../components/Button";
 import Input from "../components/Input";
@@ -11,29 +13,41 @@ const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [demoDialogOpen, setDemoDialogOpen] = useState(false);
-  const [demoForm, setDemoForm] = useState({
-    name: "",
-    contactNumber: "",
-    email: "",
-    organization: "",
-    interestedIn: "FREE_DEMO",
-  });
   const [submitting, setSubmitting] = useState(false);
 
-  const handleDemoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const demoFormSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    contactNumber: z.string().min(6, "Contact number is required"),
+    email: z.string().email("Invalid email"),
+    organization: z.string().min(1, "Organization is required"),
+    interestedIn: z.enum(["FREE_DEMO", "PRODUCT_TOUR", "CUSTOM_ONBOARDING"]),
+  });
+
+  type DemoFormValues = z.infer<typeof demoFormSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<DemoFormValues>({
+    resolver: zodResolver(demoFormSchema),
+    defaultValues: {
+      name: "",
+      contactNumber: "",
+      email: "",
+      organization: "",
+      interestedIn: "FREE_DEMO",
+    },
+  });
+
+  const handleDemoSubmit = async (data: DemoFormValues) => {
     setSubmitting(true);
     try {
-      await api.sendDemoInquiry(demoForm);
+      await api.sendDemoInquiry(data);
       alert("Demo inquiry sent! We will contact you soon.");
       setDemoDialogOpen(false);
-      setDemoForm({
-        name: "",
-        contactNumber: "",
-        email: "",
-        organization: "",
-        interestedIn: "FREE_DEMO",
-      });
+      reset();
     } catch (error) {
       alert("Failed to send inquiry. Please try again.");
     } finally {
@@ -298,58 +312,61 @@ const LandingPage: React.FC = () => {
         onOpenChange={setDemoDialogOpen}
         title="Book Your Free Demo"
       >
-        <form onSubmit={handleDemoSubmit} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={handleSubmit(handleDemoSubmit)}
+          className="space-y-4"
+        >
           <Input
             label="Name"
             required
-            value={demoForm.name}
-            onChange={(e) => setDemoForm({ ...demoForm, name: e.target.value })}
             placeholder="Your name"
+            {...register("name")}
+            error={errors.name?.message}
           />
           <Input
             label="Contact Number"
             required
-            value={demoForm.contactNumber}
-            onChange={(e) =>
-              setDemoForm({ ...demoForm, contactNumber: e.target.value })
-            }
             placeholder="Your phone number"
+            {...register("contactNumber")}
+            error={errors.contactNumber?.message}
           />
           <Input
             label="Email"
             type="email"
             required
-            value={demoForm.email}
-            onChange={(e) =>
-              setDemoForm({ ...demoForm, email: e.target.value })
-            }
             placeholder="Your email"
+            {...register("email")}
+            error={errors.email?.message}
           />
           <Input
             label="Organization"
             required
-            value={demoForm.organization}
-            onChange={(e) =>
-              setDemoForm({ ...demoForm, organization: e.target.value })
-            }
             placeholder="Your organization"
+            {...register("organization")}
+            error={errors.organization?.message}
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Interested In
             </label>
             <select
-              value={demoForm.interestedIn}
-              onChange={(e) =>
-                setDemoForm({ ...demoForm, interestedIn: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900"
+              {...register("interestedIn")}
+              className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                errors.interestedIn
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                  : "border-slate-300 focus:border-transparent focus:ring-blue-900"
+              }`}
             >
               <option value="FREE_DEMO">Free Demo</option>
-              <option value="MONTHLY_PLAN">Monthly Plan</option>
-              <option value="YEARLY_PLAN">Yearly Plan</option>
-              <option value="GENERAL_INQUIRY">General Inquiry</option>
+              <option value="PRODUCT_TOUR">Product Tour</option>
+              <option value="CUSTOM_ONBOARDING">Custom Onboarding</option>
             </select>
+            {errors.interestedIn && (
+              <p className="text-red-600 text-sm mt-1">
+                {errors.interestedIn.message}
+              </p>
+            )}
           </div>
           <Button type="submit" loading={submitting} className="w-full">
             Send Inquiry

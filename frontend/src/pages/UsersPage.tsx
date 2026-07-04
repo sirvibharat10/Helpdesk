@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Button from "../components/Button";
@@ -11,11 +14,29 @@ const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [newUser, setNewUser] = useState({
-    email: "",
-    password: "",
-    name: "",
-    role: "AGENT",
+
+  const createUserSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    role: z.enum(["AGENT", "ADMIN"]),
+  });
+
+  type CreateUserFormValues = z.infer<typeof createUserSchema>;
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      role: "AGENT",
+    },
   });
 
   useEffect(() => {
@@ -34,12 +55,11 @@ const UsersPage: React.FC = () => {
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateUser = async (data: CreateUserFormValues) => {
     try {
-      await api.createUser(newUser);
+      await api.createUser(data);
       setCreateDialogOpen(false);
-      setNewUser({ email: "", password: "", name: "", role: "AGENT" });
+      reset();
       fetchUsers();
     } catch (error) {
       alert("Failed to create user");
@@ -134,44 +154,52 @@ const UsersPage: React.FC = () => {
         onOpenChange={setCreateDialogOpen}
         title="Add New User"
       >
-        <form onSubmit={handleCreateUser} className="space-y-4">
+        <form
+          noValidate
+          onSubmit={handleSubmit(handleCreateUser)}
+          className="space-y-4"
+        >
           <Input
             label="Name"
             required
-            value={newUser.name}
-            onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
             placeholder="Full name"
+            {...register("name")}
+            error={errors.name?.message}
           />
           <Input
             label="Email"
             type="email"
             required
-            value={newUser.email}
-            onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
             placeholder="user@example.com"
+            {...register("email")}
+            error={errors.email?.message}
           />
           <Input
             label="Password"
             type="password"
             required
-            value={newUser.password}
-            onChange={(e) =>
-              setNewUser({ ...newUser, password: e.target.value })
-            }
             placeholder="••••••••"
+            {...register("password")}
+            error={errors.password?.message}
           />
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Role
             </label>
             <select
-              value={newUser.role}
-              onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+              {...register("role")}
+              className={`w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-colors ${
+                errors.role
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-200"
+                  : "border-slate-300 focus:border-transparent focus:ring-blue-900"
+              }`}
             >
               <option value="AGENT">Agent</option>
               <option value="ADMIN">Admin</option>
             </select>
+            {errors.role && (
+              <p className="text-red-600 text-sm mt-1">{errors.role.message}</p>
+            )}
           </div>
           <Button type="submit" className="w-full">
             Create User

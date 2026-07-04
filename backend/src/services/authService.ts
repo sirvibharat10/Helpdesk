@@ -25,12 +25,12 @@ export const authService = {
     const user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error("Invalid email or password");
     }
 
     const isValid = await this.comparePassword(password, user.password);
     if (!isValid) {
-      throw new Error("Invalid password");
+      throw new Error("Invalid email or password");
     }
 
     const token = this.generateToken(user.id, user.email, user.role);
