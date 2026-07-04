@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum TicketStatus {
+  NEW
+  OPEN
+  PROCESSING
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL_QUESTION
+  TECHNICAL_QUESTION
+  REFUND_REQUEST
+}
+
+enum TicketSource {
+  EMAIL
+  MANUAL
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  password         String
+  name             String
+  role             Role     @default(AGENT)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  assignedTickets  Ticket[] @relation("AssignedTo")
+  replies          Reply[]
+}
+
+model Ticket {
+  id             String         @id @default(cuid())
+  subject        String
+  body           String         @db.Text
+  status         TicketStatus   @default(NEW)
+  category       TicketCategory @default(GENERAL_QUESTION)
+  fromEmail      String
+  fromName       String
+  summary        String?        @db.Text
+  suggestedReply String?        @db.Text
+  aiClassified   Boolean        @default(false)
+  aiResolved     Boolean        @default(false)
+  source         TicketSource   @default(MANUAL)
+  assignedToId   String?
+  assignedTo     User?          @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  replies        Reply[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model Reply {
+  id             String   @id @default(cuid())
+  body           String   @db.Text
+  isAI           Boolean  @default(false)
+  sentViaEmail   Boolean  @default(false)
+  ticketId       String
+  authorId       String?
+  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author         User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+}
+
+model KnowledgeBase {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
