@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Edit, Trash2, UserPlus, Shield, User, Mail, Key } from "lucide-react";
+import { Edit, Trash2, UserPlus, Shield, User } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Button from "../components/Button";
@@ -29,9 +30,7 @@ type CreateUserFormValues = z.infer<typeof createUserSchema>;
 type UpdateUserFormValues = z.infer<typeof updateUserSchema>;
 
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Modals state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -39,7 +38,57 @@ const UsersPage: React.FC = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+
+  // TanStack Query: Fetch all users
+  const {
+    data: users = [],
+    isLoading: loading,
+    error,
+  } = useQuery<any[]>({
+    queryKey: ["users"],
+    queryFn: () => api.getUsers() as Promise<any[]>,
+  });
+
+  // TanStack Query Mutations
+  const createUserMutation = useMutation({
+    mutationFn: (data: CreateUserFormValues) => api.createUser(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setCreateDialogOpen(false);
+      resetCreate();
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to create user");
+    },
+  });
+
+  const editUserMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) =>
+      api.updateUser(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setEditDialogOpen(false);
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to update user");
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => api.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      setDeleteDialogOpen(false);
+    },
+    onError: (err: any) => {
+      alert(err.message || "Failed to delete user");
+    },
+  });
+
+  const actionLoading =
+    createUserMutation.isPending ||
+    editUserMutation.isPending ||
+    deleteUserMutation.isPending;
 
   // Forms setup
   const {
@@ -66,35 +115,8 @@ const UsersPage: React.FC = () => {
     resolver: zodResolver(updateUserSchema),
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data: any = await api.getUsers();
-      setUsers(data);
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch users");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateUser = async (data: CreateUserFormValues) => {
-    try {
-      setActionLoading(true);
-      await api.createUser(data);
-      setCreateDialogOpen(false);
-      resetCreate();
-      fetchUsers();
-    } catch (err: any) {
-      alert(err.message || "Failed to create user");
-    } finally {
-      setActionLoading(false);
-    }
+  const handleCreateUser = (data: CreateUserFormValues) => {
+    createUserMutation.mutate(data);
   };
 
   const openEditModal = (user: any) => {
@@ -108,27 +130,17 @@ const UsersPage: React.FC = () => {
     setEditDialogOpen(true);
   };
 
-  const handleEditUser = async (data: UpdateUserFormValues) => {
+  const handleEditUser = (data: UpdateUserFormValues) => {
     if (!selectedUser) return;
-    try {
-      setActionLoading(true);
-      // Clean up the password if it's empty so it doesn't get updated
-      const payload: any = {
-        name: data.name,
-        email: data.email,
-        role: data.role,
-      };
-      if (data.password && data.password.trim().length >= 6) {
-        payload.password = data.password;
-      }
-      await api.updateUser(selectedUser.id, payload);
-      setEditDialogOpen(false);
-      fetchUsers();
-    } catch (err: any) {
-      alert(err.message || "Failed to update user");
-    } finally {
-      setActionLoading(false);
+    const payload: any = {
+      name: data.name,
+      email: data.email,
+      role: data.role,
+    };
+    if (data.password && data.password.trim().length >= 6) {
+      payload.password = data.password;
     }
+    editUserMutation.mutate({ id: selectedUser.id, payload });
   };
 
   const openDeleteModal = (user: any) => {
@@ -136,18 +148,9 @@ const UsersPage: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = () => {
     if (!selectedUser) return;
-    try {
-      setActionLoading(true);
-      await api.deleteUser(selectedUser.id);
-      setDeleteDialogOpen(false);
-      fetchUsers();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete user");
-    } finally {
-      setActionLoading(false);
-    }
+    deleteUserMutation.mutate(selectedUser.id);
   };
 
   return (
@@ -168,14 +171,51 @@ const UsersPage: React.FC = () => {
         {/* Error message */}
         {error && (
           <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200">
-            {error}
+            {error instanceof Error ? error.message : "Failed to load users"}
           </div>
         )}
 
         {/* Users Table */}
         {loading ? (
-          <div className="flex items-center justify-center p-12 text-slate-600 bg-white rounded-xl shadow-sm border border-slate-200">
-            <span className="animate-spin mr-2">⏳</span> Loading users...
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Created At</th>
+                    <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {[...Array(5)].map((_, index) => (
+                    <tr key={index} className="animate-pulse">
+                      <td className="px-6 py-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-slate-200" />
+                          <div className="h-4 w-24 bg-slate-200 rounded" />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="h-4 w-36 bg-slate-200 rounded" />
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="h-6 w-16 bg-slate-200 rounded-full" />
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <div className="h-4 w-20 bg-slate-200 rounded" />
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right space-x-2">
+                        <div className="inline-block h-8 w-8 bg-slate-100 rounded-lg" />
+                        <div className="inline-block h-8 w-8 bg-slate-100 rounded-lg" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

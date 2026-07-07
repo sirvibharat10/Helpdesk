@@ -34,9 +34,11 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
         } bg-blue-900 text-white transition-all duration-300 flex flex-col`}
       >
         <div className="p-6 border-b border-blue-800">
-          <h1 className={`font-bold text-xl ${!sidebarOpen && "text-center"}`}>
-            {sidebarOpen ? "🚀 SahaYak AI" : "S"}
-          </h1>
+          <Link to="/">
+            <h1 className={`font-bold text-xl hover:text-blue-200 transition-colors ${!sidebarOpen && "text-center"}`}>
+              {sidebarOpen ? "🚀 SahaYak AI" : "S"}
+            </h1>
+          </Link>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
