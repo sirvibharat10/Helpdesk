@@ -15,7 +15,8 @@
     "db:push": "cd backend && prisma db push",
     "db:migrate": "cd backend && prisma migrate dev",
     "db:studio": "cd backend && prisma studio",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "test:frontend": "cd frontend && npm run test"
   },
   "keywords": [
     "helpdesk",

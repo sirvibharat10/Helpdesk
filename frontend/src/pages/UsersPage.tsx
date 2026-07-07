@@ -264,6 +264,7 @@ const UsersPage: React.FC = () => {
                             size="sm"
                             onClick={() => openEditModal(user)}
                             className="inline-flex text-blue-600 hover:text-blue-800"
+                            aria-label={`Edit ${user.name}`}
                           >
                             <Edit size={16} />
                           </Button>
@@ -272,6 +273,7 @@ const UsersPage: React.FC = () => {
                             size="sm"
                             onClick={() => openDeleteModal(user)}
                             className="inline-flex text-red-600 hover:text-red-800"
+                            aria-label={`Delete ${user.name}`}
                           >
                             <Trash2 size={16} />
                           </Button>
