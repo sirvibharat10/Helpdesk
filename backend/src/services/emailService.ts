@@ -30,7 +30,7 @@ export const emailService = {
         `,
       });
 
-      return !!result.id;
+      return !!(result as any)?.id || !!(result as any)?.data?.id;
     } catch (error) {
       console.error("Error sending reply email:", error);
       return false;

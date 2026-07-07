@@ -81,7 +81,13 @@ router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const data = CreateTicketSchema.parse(req.body);
     const ticket = await prisma.ticket.create({
-      data,
+      data: {
+        subject: data.subject,
+        body: data.body,
+        fromEmail: data.fromEmail,
+        fromName: data.fromName,
+        category: data.category || "GENERAL_QUESTION",
+      },
       include: { replies: true },
     });
     res.status(201).json(ticket);

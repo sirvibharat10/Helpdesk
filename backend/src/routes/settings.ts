@@ -20,7 +20,7 @@ router.get("/", authMiddleware, adminMiddleware, async (req, res) => {
 router.post("/demo-inquiry", async (req, res, next) => {
   try {
     const inquiry = DemoInquirySchema.parse(req.body);
-    const sent = await emailService.sendDemoInquiryNotification(inquiry);
+    const sent = await emailService.sendDemoInquiryNotification(inquiry as any);
 
     if (!sent) {
       return res.status(500).json({ error: "Failed to send inquiry" });
