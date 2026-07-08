@@ -286,4 +286,21 @@ describe("UsersPage Component Tests", () => {
     // Verify dialog remains open
     expect(screen.getByText("Add New User")).toBeInTheDocument();
   });
+
+  it("shows delete button for agents but hides it for admins", async () => {
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+
+    renderWithQuery(<UsersPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Admin User")).toBeInTheDocument();
+      expect(screen.getByText("Agent User")).toBeInTheDocument();
+    });
+
+    // Delete button for Agent User should be in the document
+    expect(screen.queryByRole("button", { name: "Delete Agent User" })).toBeInTheDocument();
+
+    // Delete button for Admin User should NOT be in the document
+    expect(screen.queryByRole("button", { name: "Delete Admin User" })).not.toBeInTheDocument();
+  });
 });

@@ -40,6 +40,7 @@ model User {
   password         String
   name             String
   role             Role     @default(AGENT)
+  deleted          Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   assignedTickets  Ticket[] @relation("AssignedTo")

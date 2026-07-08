@@ -114,15 +114,17 @@ const UsersTable: React.FC<UsersTableProps> = ({
                     >
                       <Edit size={16} />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(user)}
-                      className="inline-flex text-red-600 hover:text-red-800"
-                      aria-label={`Delete ${user.name}`}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+                    {user.role !== UserRole.ADMIN && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(user)}
+                        className="inline-flex text-red-600 hover:text-red-800"
+                        aria-label={`Delete ${user.name}`}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))

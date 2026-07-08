@@ -31,9 +31,7 @@ export const CreateReplySchema = z.object({
   sentViaEmail: z.boolean().optional(),
 });
 
-export const CreateUserSchema = createUserSchema.extend({
-  role: z.enum(["ADMIN", "AGENT"]).optional(),
-});
+export const CreateUserSchema = createUserSchema;
 
 export const UpdateUserSchema = z.object({
   email: z.string().email().optional(),

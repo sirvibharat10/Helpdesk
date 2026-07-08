@@ -24,7 +24,7 @@ export const authService = {
   async login(email: string, password: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 
-    if (!user) {
+    if (!user || user.deleted) {
       throw new Error("Invalid email or password");
     }
 

@@ -12,6 +12,7 @@ const prisma = new PrismaClient();
 router.get("/", authMiddleware, adminMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const users = await prisma.user.findMany({
+      where: { deleted: false },
       select: {
         id: true,
         email: true,
@@ -106,7 +107,18 @@ router.delete(
   adminMiddleware,
   async (req: AuthRequest, res, next) => {
     try {
-      await prisma.user.delete({ where: { id: req.params.id } });
+      const targetUser = await prisma.user.findUnique({ where: { id: req.params.id } });
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      if (targetUser.role === "ADMIN") {
+        return res.status(400).json({ error: "Admin users cannot be deleted." });
+      }
+
+      await prisma.user.update({
+        where: { id: req.params.id },
+        data: { deleted: true },
+      });
       res.json({ message: "User deleted" });
     } catch (error) {
       next(error);

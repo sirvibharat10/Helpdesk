@@ -87,6 +87,7 @@ const UsersPage: React.FC = () => {
       name: "",
       email: "",
       password: "",
+      role: UserRole.AGENT,
     },
   });
 
@@ -100,7 +101,7 @@ const UsersPage: React.FC = () => {
   });
 
   const handleCreateUser = (data: CreateUserFormValues) => {
-    createUserMutation.mutate({ ...data, role: UserRole.AGENT });
+    createUserMutation.mutate(data);
   };
 
   const openEditModal = (user: any) => {
