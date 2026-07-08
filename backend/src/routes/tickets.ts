@@ -168,7 +168,7 @@ router.post(
   authMiddleware,
   async (req: AuthRequest, res, next) => {
     try {
-      const { body, sentViaEmail } = CreateReplySchema.parse(req.body);
+      const { body, bodyHtml, sentViaEmail } = CreateReplySchema.parse(req.body);
 
       const ticket = await prisma.ticket.findUnique({
         where: { id: req.params.id },
@@ -180,6 +180,7 @@ router.post(
       const reply = await prisma.reply.create({
         data: {
           body,
+          bodyHtml: bodyHtml || null,
           sentViaEmail: sentViaEmail || false,
           ticketId: req.params.id,
           authorId: req.user!.id,

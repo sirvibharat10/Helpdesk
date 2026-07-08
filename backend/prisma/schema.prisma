@@ -76,6 +76,7 @@ enum ReplySenderType {
 model Reply {
   id             String          @id @default(cuid())
   body           String          @db.Text
+  bodyHtml       String?         @db.Text
   isAI           Boolean         @default(false)
   sentViaEmail   Boolean         @default(false)
   senderType     ReplySenderType @default(AGENT)

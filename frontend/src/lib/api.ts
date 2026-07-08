@@ -81,10 +81,10 @@ export const api = {
     return this.request(`/tickets/${id}`, { method: "DELETE" });
   },
 
-  addReply(ticketId: string, body: string, sentViaEmail: boolean = false) {
+  addReply(ticketId: string, body: string, sentViaEmail: boolean = false, bodyHtml?: string) {
     return this.request(`/tickets/${ticketId}/replies`, {
       method: "POST",
-      body: JSON.stringify({ body, sentViaEmail }),
+      body: JSON.stringify({ body, bodyHtml, sentViaEmail }),
     });
   },
 

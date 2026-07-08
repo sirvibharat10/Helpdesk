@@ -28,6 +28,7 @@ export const UpdateTicketSchema = z.object({
 
 export const CreateReplySchema = z.object({
   body: z.string().min(1),
+  bodyHtml: z.string().optional(),
   sentViaEmail: z.boolean().optional(),
 });
 
