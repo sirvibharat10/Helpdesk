@@ -16,6 +16,24 @@ import { z } from "zod";
 const router = Router();
 const prisma = new PrismaClient();
 
+function classifyTicketInBackground(ticketId: string, subject: string, body: string) {
+  aiService.classifyTicket(subject, body)
+    .then(async (category) => {
+      if (category) {
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: {
+            category: category as any,
+            aiClassified: true,
+          },
+        });
+      }
+    })
+    .catch((err) => {
+      console.error(`Background AI classification failed for ticket ${ticketId}:`, err);
+    });
+}
+
 // Get all tickets (with filters)
 router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
   try {
@@ -99,6 +117,11 @@ router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
       },
       include: { replies: true },
     });
+
+    if (!data.category) {
+      classifyTicketInBackground(ticket.id, ticket.subject, ticket.body);
+    }
+
     res.status(201).json(ticket);
   } catch (error) {
     next(error);
@@ -345,18 +368,6 @@ router.post("/incoming-email", async (req, res, next) => {
 
     const data = IncomingEmailSchema.parse(req.body);
 
-    let category = "GENERAL_QUESTION";
-    let aiClassified = false;
-    try {
-      const classified = await aiService.classifyTicket(data.subject, data.body);
-      if (classified) {
-        category = classified;
-        aiClassified = true;
-      }
-    } catch (aiError) {
-      console.error("AI classification failed on incoming email:", aiError);
-    }
-
     const ticket = await prisma.ticket.create({
       data: {
         subject: data.subject,
@@ -365,11 +376,13 @@ router.post("/incoming-email", async (req, res, next) => {
         fromName: data.fromName || data.fromEmail.split("@")[0],
         source: "EMAIL",
         status: "NEW",
-        category: category as any,
-        aiClassified,
+        category: "GENERAL_QUESTION",
+        aiClassified: false,
       },
       include: { replies: true },
     });
+
+    classifyTicketInBackground(ticket.id, ticket.subject, ticket.body);
 
     res.status(201).json(ticket);
   } catch (error) {
