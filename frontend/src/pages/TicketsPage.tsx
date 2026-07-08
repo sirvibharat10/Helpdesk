@@ -19,6 +19,7 @@ import {
   flexRender,
   SortingState,
   ColumnFiltersState,
+  PaginationState,
 } from "@tanstack/react-table";
 
 const TicketsPage: React.FC = () => {
@@ -26,6 +27,7 @@ const TicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [totalRows, setTotalRows] = useState(0);
 
   const createTicketSchema = z.object({
     subject: z.string().min(1, "Subject is required"),
@@ -57,6 +59,13 @@ const TicketsPage: React.FC = () => {
     search: "",
     sortBy: "createdAt",
     sortOrder: "desc",
+    page: "1",
+    limit: "10",
+  });
+
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
   });
 
   const [sorting, setSorting] = useState<SortingState>([
@@ -81,6 +90,8 @@ const TicketsPage: React.FC = () => {
         sortOrder: "desc",
       }));
     }
+    // Reset to first page on sort change
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [sorting]);
 
   // Sync columnFilters → filters (server-side)
@@ -92,7 +103,18 @@ const TicketsPage: React.FC = () => {
       status: (statusFilter?.value as string) ?? "",
       category: (categoryFilter?.value as string) ?? "",
     }));
+    // Reset to first page on filter change
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
   }, [columnFilters]);
+
+  // Sync pagination → filters (server-side)
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      page: String(pagination.pageIndex + 1),
+      limit: String(pagination.pageSize),
+    }));
+  }, [pagination]);
 
   useEffect(() => {
     fetchTickets();
@@ -148,11 +170,15 @@ const TicketsPage: React.FC = () => {
     state: {
       sorting,
       columnFilters,
+      pagination,
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onPaginationChange: setPagination,
     manualSorting: true,
     manualFiltering: true,
+    manualPagination: true,
+    rowCount: totalRows,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -161,6 +187,7 @@ const TicketsPage: React.FC = () => {
       setLoading(true);
       const response: any = await api.getTickets(filters);
       setTickets(response.tickets);
+      setTotalRows(response.pagination?.total ?? 0);
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
     } finally {
@@ -262,64 +289,98 @@ const TicketsPage: React.FC = () => {
             Loading...
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <tr key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        const isSortable = ["subject", "fromEmail", "status", "category", "createdAt"].includes(header.id);
-                        return (
-                          <th
-                            key={header.id}
-                            onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-slate-900 ${isSortable ? 'cursor-pointer select-none hover:bg-slate-100' : ''}`}
+          <>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id}>
+                        {headerGroup.headers.map((header) => {
+                          const isSortable = ["subject", "fromEmail", "status", "category", "createdAt"].includes(header.id);
+                          return (
+                            <th
+                              key={header.id}
+                              onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                              className={`px-6 py-3 text-left text-sm font-semibold text-slate-900 ${isSortable ? 'cursor-pointer select-none hover:bg-slate-100' : ''}`}
+                            >
+                              <div className="flex items-center gap-1">
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )}
+                                {isSortable && (
+                                  <span className="text-slate-400 text-xs">
+                                    {{
+                                      asc: " 🔼",
+                                      desc: " 🔽",
+                                    }[header.column.getIsSorted() as string] ?? " ⇅"}
+                                  </span>
+                                )}
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="hover:bg-slate-50 cursor-pointer"
+                        onClick={() => navigate(`/tickets/${row.original.id}`)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="px-6 py-4 text-sm text-slate-600"
                           >
-                            <div className="flex items-center gap-1">
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                              {isSortable && (
-                                <span className="text-slate-400 text-xs">
-                                  {{
-                                    asc: " 🔼",
-                                    desc: " 🔽",
-                                  }[header.column.getIsSorted() as string] ?? " ⇅"}
-                                </span>
-                              )}
-                            </div>
-                          </th>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="hover:bg-slate-50 cursor-pointer"
-                      onClick={() => navigate(`/tickets/${row.original.id}`)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="px-6 py-4 text-sm text-slate-600"
-                        >
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+
+            {/* Pagination controls */}
+            <div className="flex items-center justify-between px-6 py-4 border border-slate-200 bg-white rounded-xl">
+              <span className="text-sm text-slate-500">
+                Showing{" "}
+                {totalRows === 0
+                  ? 0
+                  : pagination.pageIndex * pagination.pageSize + 1}
+                {" – "}
+                {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalRows)}{" "}
+                of {totalRows} tickets
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                  className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                >
+                  &larr; Previous
+                </button>
+                <span className="text-sm text-slate-600">
+                  Page {pagination.pageIndex + 1} of {table.getPageCount()}
+                </span>
+                <button
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                  className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                >
+                  Next &rarr;
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
