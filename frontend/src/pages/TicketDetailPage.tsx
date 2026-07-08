@@ -7,7 +7,7 @@ import Input from "../components/Input";
 import Textarea from "../components/Textarea";
 import Badge from "../components/Badge";
 import { formatDateTime } from "../lib/utils";
-import { Send, Save, Wand2, FileText, MessageSquare, Bot } from "lucide-react";
+import { Send, Save, Wand2, FileText, MessageSquare, Bot, Sparkles } from "lucide-react";
 import { TicketStatus, TicketCategory } from "../types";
 import TicketDetail from "../components/TicketDetail";
 import UpdateTicket from "../components/UpdateTicket";
@@ -189,6 +189,17 @@ const TicketDetailPage: React.FC = () => {
         {/* Main Content */}
         <div className="col-span-2 space-y-6">
           <TicketDetail ticket={ticket} />
+
+          <div className="flex justify-start">
+            <Button
+              variant="secondary"
+              onClick={handleSummarize}
+              loading={summarizing}
+              className="flex items-center gap-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 border-indigo-200 hover:from-blue-100 hover:to-indigo-100"
+            >
+              <Sparkles size={16} className="text-indigo-600" /> Summarize
+            </Button>
+          </div>
 
           {/* AI Tools */}
           <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">

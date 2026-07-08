@@ -34,14 +34,22 @@ Respond with ONLY the category name, nothing else.`;
     }
   },
 
-  async summarizeTicket(subject: string, body: string): Promise<string> {
+  async summarizeTicket(
+    subject: string,
+    body: string,
+    conversationHistory?: string,
+  ): Promise<string> {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-      const prompt = `Summarize this support ticket in 2-3 sentences.
+      const historyText = conversationHistory
+        ? `\n\nCONVERSATION HISTORY:\n${conversationHistory}`
+        : "";
+
+      const prompt = `Summarize this support ticket and the conversation history in 2-3 sentences.
 
 Subject: ${subject}
-Body: ${body}
+Original Body: ${body}${historyText}
 
 Provide only the summary, no additional text.`;
 

@@ -245,14 +245,28 @@ router.post(
     try {
       const ticket = await prisma.ticket.findUnique({
         where: { id: req.params.id },
+        include: {
+          replies: {
+            include: { author: true },
+            orderBy: { createdAt: "asc" },
+          },
+        },
       });
       if (!ticket) {
         return res.status(404).json({ error: "Ticket not found" });
       }
 
+      const conversationHistory = ticket.replies
+        .map((r: any) => {
+          const sender = r.senderType === "AI" ? "AI Bot" : r.author?.name || "Customer";
+          return `[${sender}]: ${r.body}`;
+        })
+        .join("\n");
+
       const summary = await aiService.summarizeTicket(
         ticket.subject,
         ticket.body,
+        conversationHistory,
       );
       const updated = await prisma.ticket.update({
         where: { id: req.params.id },
