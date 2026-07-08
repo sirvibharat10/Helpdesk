@@ -31,6 +31,14 @@ router.post("/", authMiddleware, adminMiddleware, async (req: AuthRequest, res, 
   try {
     const { email, password, name, role } = CreateUserSchema.parse(req.body);
 
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ error: "User with this email already exists." });
+    }
+
     const hashedPassword = await authService.hashPassword(password);
 
     const user = await prisma.user.create({

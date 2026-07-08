@@ -224,4 +224,66 @@ describe("UsersPage Component Tests", () => {
       expect(screen.queryByText("Confirm User Deletion")).not.toBeInTheDocument();
     });
   });
+
+  it("shows the Add New User dialog on click and hides it on escape key press or backdrop click", async () => {
+    vi.mocked(api.getUsers).mockResolvedValue([]);
+
+    renderWithQuery(<UsersPage />);
+
+    // Click on Add User button to open dialog
+    const addButton = screen.getByText("Add User");
+    fireEvent.click(addButton);
+
+    // Dialog should open
+    expect(screen.getByText("Add New User")).toBeInTheDocument();
+
+    // Trigger backdrop click (outside click on backdrop)
+    const dialogBackdrop = screen.getByText("Add New User").closest(".fixed.inset-0") as HTMLElement;
+    expect(dialogBackdrop).toBeInTheDocument();
+    fireEvent.click(dialogBackdrop);
+
+    // Dialog should close
+    expect(screen.queryByText("Add New User")).not.toBeInTheDocument();
+
+    // Open again
+    fireEvent.click(addButton);
+    expect(screen.getByText("Add New User")).toBeInTheDocument();
+
+    // Trigger Escape key down event on window
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    // Dialog should close
+    expect(screen.queryByText("Add New User")).not.toBeInTheDocument();
+  });
+
+  it("displays conflict error message in the UI when user creation fails with duplicate email", async () => {
+    vi.mocked(api.getUsers).mockResolvedValue([]);
+    vi.mocked(api.createUser).mockRejectedValue(new Error("User with this email already exists."));
+
+    const { container } = renderWithQuery(<UsersPage />);
+
+    // Click on Add User button
+    const addButton = screen.getByText("Add User");
+    fireEvent.click(addButton);
+
+    // Fill form and submit using input name attributes
+    const nameInput = container.querySelector('input[name="name"]') as HTMLInputElement;
+    const emailInput = container.querySelector('input[name="email"]') as HTMLInputElement;
+    const passwordInput = container.querySelector('input[name="password"]') as HTMLInputElement;
+
+    fireEvent.change(nameInput, { target: { value: "Duplicate User" } });
+    fireEvent.change(emailInput, { target: { value: "duplicate@example.com" } });
+    fireEvent.change(passwordInput, { target: { value: "password123" } });
+
+    const createButton = screen.getByText("Create User");
+    fireEvent.click(createButton);
+
+    // Wait for mutation rejection and verify error banner is displayed in the form
+    await waitFor(() => {
+      expect(screen.getByText("User with this email already exists.")).toBeInTheDocument();
+    });
+
+    // Verify dialog remains open
+    expect(screen.getByText("Add New User")).toBeInTheDocument();
+  });
 });

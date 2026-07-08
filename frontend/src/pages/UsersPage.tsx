@@ -51,9 +51,6 @@ const UsersPage: React.FC = () => {
       setCreateDialogOpen(false);
       resetCreate();
     },
-    onError: (err: any) => {
-      alert(err.message || "Failed to create user");
-    },
   });
 
   const editUserMutation = useMutation({
@@ -63,9 +60,6 @@ const UsersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setEditDialogOpen(false);
     },
-    onError: (err: any) => {
-      alert(err.message || "Failed to update user");
-    },
   });
 
   const deleteUserMutation = useMutation({
@@ -73,9 +67,6 @@ const UsersPage: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setDeleteDialogOpen(false);
-    },
-    onError: (err: any) => {
-      alert(err.message || "Failed to delete user");
     },
   });
 
@@ -113,6 +104,7 @@ const UsersPage: React.FC = () => {
   };
 
   const openEditModal = (user: any) => {
+    editUserMutation.reset();
     setSelectedUser(user);
     resetEdit({
       name: user.name,
@@ -137,6 +129,7 @@ const UsersPage: React.FC = () => {
   };
 
   const openDeleteModal = (user: any) => {
+    deleteUserMutation.reset();
     setSelectedUser(user);
     setDeleteDialogOpen(true);
   };
@@ -155,7 +148,14 @@ const UsersPage: React.FC = () => {
             <h3 className="text-lg font-semibold text-slate-900">User Management</h3>
             <p className="text-sm text-slate-500">Create, manage, and configure access roles for organization users.</p>
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              createUserMutation.reset();
+              resetCreate();
+              setCreateDialogOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
             <UserPlus size={18} />
             Add User
           </Button>
@@ -184,6 +184,11 @@ const UsersPage: React.FC = () => {
         title="Add New User"
       >
         <form noValidate onSubmit={handleSubmitCreate(handleCreateUser)} className="space-y-4">
+          {createUserMutation.error && (
+            <div className="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-sm">
+              {createUserMutation.error instanceof Error ? createUserMutation.error.message : "An error occurred"}
+            </div>
+          )}
           <Input
             label="Name"
             required
@@ -232,6 +237,11 @@ const UsersPage: React.FC = () => {
       >
         {selectedUser && (
           <form noValidate onSubmit={handleSubmitEdit(handleEditUser)} className="space-y-4">
+            {editUserMutation.error && (
+              <div className="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-sm">
+                {editUserMutation.error instanceof Error ? editUserMutation.error.message : "An error occurred"}
+              </div>
+            )}
             <Input
               label="Name"
               required
@@ -292,6 +302,11 @@ const UsersPage: React.FC = () => {
       >
         {selectedUser && (
           <div className="space-y-4">
+            {deleteUserMutation.error && (
+              <div className="bg-red-50 text-red-800 p-3 rounded-lg border border-red-200 text-sm">
+                {deleteUserMutation.error instanceof Error ? deleteUserMutation.error.message : "An error occurred"}
+              </div>
+            )}
             <p className="text-slate-600 text-sm">
               Are you sure you want to delete user <strong className="text-slate-900">{selectedUser.name}</strong> ({selectedUser.email})?
             </p>
