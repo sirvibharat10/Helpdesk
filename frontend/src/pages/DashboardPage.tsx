@@ -3,6 +3,7 @@ import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Badge from "../components/Badge";
 import { formatDate } from "../lib/utils";
+import { TicketStatus } from "../types";
 
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
@@ -22,9 +23,9 @@ const DashboardPage: React.FC = () => {
         setStats({
           total: allData.length,
           open: allData.filter(
-            (t: any) => t.status === "OPEN" || t.status === "NEW",
+            (t: any) => t.status === TicketStatus.OPEN || t.status === TicketStatus.NEW,
           ).length,
-          resolved: allData.filter((t: any) => t.status === "RESOLVED").length,
+          resolved: allData.filter((t: any) => t.status === TicketStatus.RESOLVED).length,
           avgTime: "2.5 hours",
         });
       } catch (error) {
@@ -39,15 +40,15 @@ const DashboardPage: React.FC = () => {
 
   const getStatusBadgeVariant = (status: string): any => {
     switch (status) {
-      case "NEW":
+      case TicketStatus.NEW:
         return "new";
-      case "OPEN":
+      case TicketStatus.OPEN:
         return "open";
-      case "PROCESSING":
+      case TicketStatus.PROCESSING:
         return "processing";
-      case "RESOLVED":
+      case TicketStatus.RESOLVED:
         return "resolved";
-      case "CLOSED":
+      case TicketStatus.CLOSED:
         return "closed";
       default:
         return "default";
@@ -106,7 +107,9 @@ const DashboardPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {tickets.map((ticket) => (
+                  {[...tickets]
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((ticket) => (
                     <tr key={ticket.id} className="hover:bg-slate-50">
                       <td className="px-6 py-4 text-sm font-medium text-blue-600 cursor-pointer">
                         {ticket.subject}

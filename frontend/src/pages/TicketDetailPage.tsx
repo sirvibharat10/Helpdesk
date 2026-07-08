@@ -8,6 +8,7 @@ import Textarea from "../components/Textarea";
 import Badge from "../components/Badge";
 import { formatDateTime } from "../lib/utils";
 import { Send, Save, Wand2, FileText, MessageSquare, Bot } from "lucide-react";
+import { TicketStatus, TicketCategory } from "../types";
 
 const TicketDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -115,15 +116,15 @@ const TicketDetailPage: React.FC = () => {
 
   const getStatusBadgeVariant = (status: string): any => {
     switch (status) {
-      case "NEW":
+      case TicketStatus.NEW:
         return "new";
-      case "OPEN":
+      case TicketStatus.OPEN:
         return "open";
-      case "PROCESSING":
+      case TicketStatus.PROCESSING:
         return "processing";
-      case "RESOLVED":
+      case TicketStatus.RESOLVED:
         return "resolved";
-      case "CLOSED":
+      case TicketStatus.CLOSED:
         return "closed";
       default:
         return "default";
@@ -272,13 +273,13 @@ const TicketDetailPage: React.FC = () => {
             <select
               value={ticket.status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
             >
-              <option value="NEW">New</option>
-              <option value="OPEN">Open</option>
-              <option value="PROCESSING">Processing</option>
-              <option value="RESOLVED">Resolved</option>
-              <option value="CLOSED">Closed</option>
+              {Object.values(TicketStatus).map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0) + status.slice(1).toLowerCase()}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -288,11 +289,13 @@ const TicketDetailPage: React.FC = () => {
             <select
               value={ticket.category}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
             >
-              <option value="GENERAL_QUESTION">General Question</option>
-              <option value="TECHNICAL_QUESTION">Technical Question</option>
-              <option value="REFUND_REQUEST">Refund Request</option>
+              {Object.values(TicketCategory).map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                </option>
+              ))}
             </select>
           </div>
 

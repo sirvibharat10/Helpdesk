@@ -11,6 +11,7 @@ import Badge from "../components/Badge";
 import Dialog from "../components/Dialog";
 import Textarea from "../components/Textarea";
 import { formatDate } from "../lib/utils";
+import { TicketStatus, TicketCategory } from "../types";
 
 const TicketsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -77,15 +78,15 @@ const TicketsPage: React.FC = () => {
 
   const getStatusBadgeVariant = (status: string): any => {
     switch (status) {
-      case "NEW":
+      case TicketStatus.NEW:
         return "new";
-      case "OPEN":
+      case TicketStatus.OPEN:
         return "open";
-      case "PROCESSING":
+      case TicketStatus.PROCESSING:
         return "processing";
-      case "RESOLVED":
+      case TicketStatus.RESOLVED:
         return "resolved";
-      case "CLOSED":
+      case TicketStatus.CLOSED:
         return "closed";
       default:
         return "default";
@@ -103,14 +104,14 @@ const TicketsPage: React.FC = () => {
               onChange={(e) =>
                 setFilters({ ...filters, status: e.target.value })
               }
-              className="px-4 py-2 border border-slate-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
             >
               <option value="">All Status</option>
-              <option value="NEW">New</option>
-              <option value="OPEN">Open</option>
-              <option value="PROCESSING">Processing</option>
-              <option value="RESOLVED">Resolved</option>
-              <option value="CLOSED">Closed</option>
+              {Object.values(TicketStatus).map((status) => (
+                <option key={status} value={status}>
+                  {status.charAt(0) + status.slice(1).toLowerCase()}
+                </option>
+              ))}
             </select>
 
             <select
@@ -118,12 +119,14 @@ const TicketsPage: React.FC = () => {
               onChange={(e) =>
                 setFilters({ ...filters, category: e.target.value })
               }
-              className="px-4 py-2 border border-slate-300 rounded-lg"
+              className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
             >
               <option value="">All Categories</option>
-              <option value="GENERAL_QUESTION">General Question</option>
-              <option value="TECHNICAL_QUESTION">Technical Question</option>
-              <option value="REFUND_REQUEST">Refund Request</option>
+              {Object.values(TicketCategory).map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                </option>
+              ))}
             </select>
 
             <Input
@@ -169,7 +172,9 @@ const TicketsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {tickets.map((ticket) => (
+                  {[...tickets]
+                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    .map((ticket) => (
                     <tr
                       key={ticket.id}
                       className="hover:bg-slate-50 cursor-pointer"

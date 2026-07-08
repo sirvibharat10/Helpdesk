@@ -77,6 +77,9 @@ We use **Vitest** + **jsdom** + **React Testing Library (RTL)** for frontend com
 ### Enums & Types
 - Centralize frontend enums and type definitions in the `frontend/src/types/` directory.
 - Avoid using raw string literals for roles. Always use the `UserRole` enum defined in [index.ts](file:///c:/Users/Bhara/Desktop/HELPDESK/frontend/src/types/index.ts) (possessing values `ADMIN` and `AGENT`) when assigning or checking roles.
+- Avoid using raw string literals for ticket status and categories. Always use the `TicketStatus` and `TicketCategory` union types (declared via `as const` object value mappings and exported string literal union types in [index.ts](file:///c:/Users/Bhara/Desktop/HELPDESK/frontend/src/types/index.ts)) when checking status, filtering categories, or rendering dropdown select elements.
+
+
 
 ### Backend Error Handling
 - Since we use **Express 4**, manual `try/catch` blocks wrapping async route handlers are **mandatory** to catch and forward rejected promises to the error middleware via `next(err)`. Without `try/catch`, asynchronous errors will result in unhandled promise rejections that crash the Node.js server. Always wrap async controllers in `try/catch` and capture/forward the error.
