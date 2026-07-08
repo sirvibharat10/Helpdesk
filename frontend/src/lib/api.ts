@@ -100,6 +100,13 @@ export const api = {
     return this.request(`/tickets/${id}/suggest-reply`, { method: "POST" });
   },
 
+  polishReply(id: string, replyBody: string) {
+    return this.request(`/tickets/${id}/polish-reply`, {
+      method: "POST",
+      body: JSON.stringify({ replyBody }),
+    });
+  },
+
   // Users
   getUsers() {
     return this.request("/users");

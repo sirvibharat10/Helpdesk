@@ -23,6 +23,7 @@ vi.mock("../../lib/api", () => {
       getUsers: vi.fn(),
       updateTicket: vi.fn(),
       addReply: vi.fn(),
+      polishReply: vi.fn(),
     },
   };
 });
@@ -359,5 +360,30 @@ describe("TicketDetailPage Assignment & Info Tests", () => {
 
     const textarea = screen.getByPlaceholderText("Type your reply...");
     expect(textarea).toHaveValue("This is a lovely suggested reply.");
+  });
+
+  it("calls api.polishReply and updates textarea on clicking Polish button", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.polishReply).mockResolvedValue({
+      polishedBody: "This is a polished and improved reply.",
+    });
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText("Type your reply...");
+    fireEvent.change(textarea, { target: { value: "original draft" } });
+
+    const polishButton = screen.getByText("Polish");
+    fireEvent.click(polishButton);
+
+    await waitFor(() => {
+      expect(api.polishReply).toHaveBeenCalledWith("ticket-123", "original draft");
+      expect(textarea).toHaveValue("This is a polished and improved reply.");
+    });
   });
 });

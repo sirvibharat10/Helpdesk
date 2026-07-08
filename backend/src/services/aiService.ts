@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { createGoogle } from "@ai-sdk/google";
+import { generateText } from "ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -111,6 +113,51 @@ Respond in JSON format:
     } catch (error) {
       console.error("Error in auto-resolve:", error);
       return { canResolve: false, reply: "" };
+    }
+  },
+
+  async polishReply(
+    originalBody: string,
+    ticketSubject: string,
+    ticketBody: string,
+    agentName?: string,
+    customerName?: string,
+  ): Promise<string> {
+    try {
+      const googleProvider = createGoogle({
+        apiKey: process.env.GEMINI_API_KEY || "",
+      });
+
+      const greetingInstructions = customerName
+        ? `Start the reply by addressing the customer by their name, e.g. "Dear ${customerName}," or "Hello ${customerName},".`
+        : "";
+
+      const signatureInstructions = agentName
+        ? `Additionally, sign the reply with the signature: "Best regards,\n${agentName}" (or a similar polite closing followed by ${agentName} on a new line).`
+        : "";
+
+      const response = await generateText({
+        model: googleProvider("gemini-2.5-flash"),
+        prompt: `You are a professional support agent. Polish and improve this draft reply to a customer's support ticket.
+Make it grammatically correct, professional, friendly, clear, and concise, while keeping the original intent.
+
+TICKET INFO:
+Subject: ${ticketSubject}
+Original Query: ${ticketBody}
+
+DRAFT REPLY TO POLISH:
+${originalBody}
+
+${greetingInstructions}
+${signatureInstructions}
+
+Provide only the improved/polished draft reply body. Do not add any intros, explanations, or quotes.`,
+      });
+
+      return response.text.trim();
+    } catch (error) {
+      console.error("Error polishing reply:", error);
+      return originalBody;
     }
   },
 };

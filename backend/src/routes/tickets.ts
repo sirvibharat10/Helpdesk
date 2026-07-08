@@ -7,6 +7,7 @@ import {
   UpdateTicketSchema,
   CreateReplySchema,
   IncomingEmailSchema,
+  PolishReplySchema,
 } from "../validators.js";
 import { aiService } from "../services/aiService.js";
 import { emailService } from "../services/emailService.js";
@@ -361,5 +362,44 @@ router.post("/incoming-email", async (req, res, next) => {
     next(error);
   }
 });
+
+// Polish reply
+router.post(
+  "/:id/polish-reply",
+  authMiddleware,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: req.params.id },
+      });
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+
+      const { replyBody } = PolishReplySchema.parse(req.body);
+
+      const user = await prisma.user.findUnique({
+        where: { id: req.user!.id },
+      });
+      const agentName = user?.name || "Support Agent";
+
+      const customerFirstName = ticket.fromName
+        ? ticket.fromName.trim().split(/\s+/)[0]
+        : "";
+
+      const polished = await aiService.polishReply(
+        replyBody,
+        ticket.subject,
+        ticket.body,
+        agentName,
+        customerFirstName,
+      );
+
+      res.json({ polishedBody: polished });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 export default router;

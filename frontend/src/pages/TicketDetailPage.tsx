@@ -22,6 +22,7 @@ const TicketDetailPage: React.FC = () => {
   const [classifying, setClassifying] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
+  const [polishing, setPolishing] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [updatingCategory, setUpdatingCategory] = useState(false);
@@ -140,6 +141,21 @@ const TicketDetailPage: React.FC = () => {
       alert("Failed to suggest reply");
     } finally {
       setSuggestingReply(false);
+    }
+  };
+
+  const handlePolish = async () => {
+    if (!replyBody.trim()) return;
+    try {
+      setPolishing(true);
+      const res: any = await api.polishReply(id!, replyBody);
+      if (res && res.polishedBody) {
+        setReplyBody(res.polishedBody);
+      }
+    } catch (error) {
+      alert("Failed to polish reply");
+    } finally {
+      setPolishing(false);
     }
   };
 
@@ -280,8 +296,17 @@ const TicketDetailPage: React.FC = () => {
             />
             <div className="flex gap-3 mt-4">
               <Button
+                variant="secondary"
+                onClick={handlePolish}
+                loading={polishing}
+                disabled={!replyBody.trim()}
+              >
+                <Wand2 size={16} /> Polish
+              </Button>
+              <Button
                 onClick={() => handleAddReply(true)}
                 loading={sendingReply}
+                disabled={!replyBody.trim()}
               >
                 <Send size={16} /> Send via Email
               </Button>
@@ -289,6 +314,7 @@ const TicketDetailPage: React.FC = () => {
                 variant="secondary"
                 onClick={() => handleAddReply(false)}
                 loading={sendingReply}
+                disabled={!replyBody.trim()}
               >
                 <Save size={16} /> Save as Note
               </Button>

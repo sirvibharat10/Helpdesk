@@ -32,6 +32,10 @@ export const CreateReplySchema = z.object({
   sentViaEmail: z.boolean().optional(),
 });
 
+export const PolishReplySchema = z.object({
+  replyBody: z.string().min(1),
+});
+
 export const CreateUserSchema = createUserSchema;
 
 export const UpdateUserSchema = z.object({
