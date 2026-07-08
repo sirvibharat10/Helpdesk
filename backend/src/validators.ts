@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createUserSchema } from "core";
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -30,18 +31,15 @@ export const CreateReplySchema = z.object({
   sentViaEmail: z.boolean().optional(),
 });
 
-export const CreateUserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-  name: z.string().min(1),
+export const CreateUserSchema = createUserSchema.extend({
   role: z.enum(["ADMIN", "AGENT"]).optional(),
 });
 
 export const UpdateUserSchema = z.object({
   email: z.string().email().optional(),
-  name: z.string().min(1).optional(),
+  name: z.string().min(3).optional(),
   role: z.enum(["ADMIN", "AGENT"]).optional(),
-  password: z.string().min(6).optional(),
+  password: z.string().min(8).optional(),
 });
 
 export const DemoInquirySchema = z.object({

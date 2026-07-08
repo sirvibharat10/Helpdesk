@@ -120,9 +120,9 @@ describe("UsersPage Component Tests", () => {
     fireEvent.click(createButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Name is required")).toBeInTheDocument();
+      expect(screen.getByText("Name must be at least 3 characters")).toBeInTheDocument();
       expect(screen.getByText("Invalid email address")).toBeInTheDocument();
-      expect(screen.getByText("Password must be at least 6 characters")).toBeInTheDocument();
+      expect(screen.getByText("Password must be at least 8 characters")).toBeInTheDocument();
     });
 
     // Fill form and submit using input name attributes
@@ -140,8 +140,8 @@ describe("UsersPage Component Tests", () => {
       expect(api.createUser).toHaveBeenCalledWith({
         name: "New User",
         email: "new@example.com",
-        role: "AGENT",
         password: "password123",
+        role: "AGENT",
       });
       // Dialog should close
       expect(screen.queryByText("Add New User")).not.toBeInTheDocument();

@@ -9,7 +9,7 @@ const router = Router();
 const prisma = new PrismaClient();
 
 // Get all users (admin only)
-router.get("/", authMiddleware, adminMiddleware, async (req, res, next) => {
+router.get("/", authMiddleware, adminMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -27,7 +27,7 @@ router.get("/", authMiddleware, adminMiddleware, async (req, res, next) => {
 });
 
 // Create user (admin only)
-router.post("/", authMiddleware, adminMiddleware, async (req, res, next) => {
+router.post("/", authMiddleware, adminMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const { email, password, name, role } = CreateUserSchema.parse(req.body);
 
@@ -63,7 +63,7 @@ router.patch(
   "/:id",
   authMiddleware,
   adminMiddleware,
-  async (req, res, next) => {
+  async (req: AuthRequest, res, next) => {
     try {
       const updateData = UpdateUserSchema.parse(req.body);
 
@@ -96,7 +96,7 @@ router.delete(
   "/:id",
   authMiddleware,
   adminMiddleware,
-  async (req, res, next) => {
+  async (req: AuthRequest, res, next) => {
     try {
       await prisma.user.delete({ where: { id: req.params.id } });
       res.json({ message: "User deleted" });

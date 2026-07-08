@@ -2,28 +2,22 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Edit, Trash2, UserPlus, Shield, User } from "lucide-react";
+import { UserPlus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Button from "../components/Button";
 import Input from "../components/Input";
 import Dialog from "../components/Dialog";
-import Badge from "../components/Badge";
-import { formatDate } from "../lib/utils";
-
-const createUserSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email address"),
-  role: z.enum(["ADMIN", "AGENT"]),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
+import UsersTable from "../components/UsersTable";
+import { UserRole } from "../types";
+import { createUserSchema } from "core";
 
 const updateUserSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(3, "Name must be at least 3 characters"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(["ADMIN", "AGENT"]),
-  password: z.string().min(6, "Password must be at least 6 characters").or(z.literal("")),
+  role: z.nativeEnum(UserRole),
+  password: z.string().min(8, "Password must be at least 8 characters").or(z.literal("")),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
@@ -51,7 +45,7 @@ const UsersPage: React.FC = () => {
 
   // TanStack Query Mutations
   const createUserMutation = useMutation({
-    mutationFn: (data: CreateUserFormValues) => api.createUser(data),
+    mutationFn: (data: any) => api.createUser(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       setCreateDialogOpen(false);
@@ -101,7 +95,6 @@ const UsersPage: React.FC = () => {
     defaultValues: {
       name: "",
       email: "",
-      role: "AGENT",
       password: "",
     },
   });
@@ -116,7 +109,7 @@ const UsersPage: React.FC = () => {
   });
 
   const handleCreateUser = (data: CreateUserFormValues) => {
-    createUserMutation.mutate(data);
+    createUserMutation.mutate({ ...data, role: UserRole.AGENT });
   };
 
   const openEditModal = (user: any) => {
@@ -176,116 +169,12 @@ const UsersPage: React.FC = () => {
         )}
 
         {/* Users Table */}
-        {loading ? (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Created At</th>
-                    <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {[...Array(5)].map((_, index) => (
-                    <tr key={index} className="animate-pulse">
-                      <td className="px-6 py-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-slate-200" />
-                          <div className="h-4 w-24 bg-slate-200 rounded" />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="h-4 w-36 bg-slate-200 rounded" />
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="h-6 w-16 bg-slate-200 rounded-full" />
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <div className="h-4 w-20 bg-slate-200 rounded" />
-                      </td>
-                      <td className="px-6 py-4 text-sm text-right space-x-2">
-                        <div className="inline-block h-8 w-8 bg-slate-100 rounded-lg" />
-                        <div className="inline-block h-8 w-8 bg-slate-100 rounded-lg" />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Name</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Email</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Role</th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">Created At</th>
-                    <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {users.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-slate-500 text-sm">
-                        No users found.
-                      </td>
-                    </tr>
-                  ) : (
-                    users.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-50">
-                        <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-700 font-semibold">
-                              {user.name.charAt(0).toUpperCase()}
-                            </div>
-                            {user.name}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{user.email}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <Badge variant={user.role === "ADMIN" ? "open" : "default"}>
-                            <span className="flex items-center gap-1">
-                              {user.role === "ADMIN" ? <Shield size={12} /> : <User size={12} />}
-                              {user.role}
-                            </span>
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-slate-600">{formatDate(user.createdAt)}</td>
-                        <td className="px-6 py-4 text-sm text-right space-x-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditModal(user)}
-                            className="inline-flex text-blue-600 hover:text-blue-800"
-                            aria-label={`Edit ${user.name}`}
-                          >
-                            <Edit size={16} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openDeleteModal(user)}
-                            className="inline-flex text-red-600 hover:text-red-800"
-                            aria-label={`Delete ${user.name}`}
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+        <UsersTable
+          loading={loading}
+          users={users}
+          onEdit={openEditModal}
+          onDelete={openDeleteModal}
+        />
       </div>
 
       {/* Add User Dialog */}
@@ -310,19 +199,7 @@ const UsersPage: React.FC = () => {
             {...registerCreate("email")}
             error={createErrors.email?.message}
           />
-          <div className="w-full">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
-            <select
-              {...registerCreate("role")}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-blue-900 transition-colors bg-white text-sm"
-            >
-              <option value="AGENT">Agent</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-            {createErrors.role?.message && (
-              <p className="text-red-600 text-sm mt-1">{createErrors.role.message}</p>
-            )}
-          </div>
+
           <Input
             label="Password"
             type="password"
@@ -376,8 +253,8 @@ const UsersPage: React.FC = () => {
                 {...registerEdit("role")}
                 className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-blue-900 transition-colors bg-white text-sm"
               >
-                <option value="AGENT">Agent</option>
-                <option value="ADMIN">Admin</option>
+                <option value={UserRole.AGENT}>Agent</option>
+                <option value={UserRole.ADMIN}>Admin</option>
               </select>
               {editErrors.role?.message && (
                 <p className="text-red-600 text-sm mt-1">{editErrors.role.message}</p>

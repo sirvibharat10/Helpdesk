@@ -64,3 +64,24 @@ We use **Vitest** + **jsdom** + **React Testing Library (RTL)** for frontend com
   const nameInput = container.querySelector('input[name="name"]');
   const emailInput = container.querySelector('input[name="email"]');
   ```
+
+---
+
+## Code Conventions
+
+### Data Validation
+- Always use **React Hook Form** + **Zod** for frontend form handling and input validation (e.g., when adding a new user, updating profiles).
+- Backend validator schemas are centralized in [validators.ts](file:///c:/Users/Bhara/Desktop/HELPDESK/backend/src/validators.ts).
+- Frontend forms should pair `useForm` with `zodResolver` from `@hookform/resolvers/zod` to validate user inputs against a defined Zod schema before triggering submit callbacks.
+
+### Enums & Types
+- Centralize frontend enums and type definitions in the `frontend/src/types/` directory.
+- Avoid using raw string literals for roles. Always use the `UserRole` enum defined in [index.ts](file:///c:/Users/Bhara/Desktop/HELPDESK/frontend/src/types/index.ts) (possessing values `ADMIN` and `AGENT`) when assigning or checking roles.
+
+### Backend Error Handling
+- Since we use **Express 4**, manual `try/catch` blocks wrapping async route handlers are **mandatory** to catch and forward rejected promises to the error middleware via `next(err)`. Without `try/catch`, asynchronous errors will result in unhandled promise rejections that crash the Node.js server. Always wrap async controllers in `try/catch` and capture/forward the error.
+
+### Shared Core Package
+- Define shared Zod data validation schemas in the `core` package (`core/src/index.ts`).
+- Reference this shared package by importing schemas directly from `"core"` inside both client (`frontend`) and server (`backend`) code.
+- Backend-specific schema attributes (such as database-only optional fields like `role`) should be appended by extending the core schema using `.extend(...)` in the backend validation file.
