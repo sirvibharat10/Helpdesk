@@ -54,8 +54,8 @@ test.describe("Support Email Ticket Ingestion E2E Tests", () => {
     await expect(ticketRow).toBeVisible();
     await expect(ticketRow).toContainText(testEmail);
     
-    // Click on the ticket row to view detail
-    await ticketRow.click();
+    // Click on the ticket Subject link to view detail
+    await ticketRow.locator("button.link").click();
 
     // Verify details are rendered correctly on the Ticket Detail page
     await expect(page).toHaveURL(new RegExp(`/tickets/${ticketId}`));
@@ -100,8 +100,8 @@ test.describe("Support Email Ticket Ingestion E2E Tests", () => {
     await expect(ticketRow).toBeVisible();
     await expect(ticketRow).toContainText(testEmail);
 
-    // Click the row to verify the details page
-    await ticketRow.click();
+    // Click the ticket Subject link to verify the details page
+    await ticketRow.locator("button.link").click();
     await expect(page).toHaveURL(new RegExp(`/tickets/${json.id}`));
     await expect(page.locator(`h2:has-text('${testSubject}')`)).toBeVisible();
     await expect(page.locator(`text=${testBody}`)).toBeVisible();

@@ -55,13 +55,16 @@ The project is fully functional and building successfully end-to-end.
 - Dashboard:
   - `DashboardPage.tsx` displays ticket stats and recent tickets sorted by newest first
 - Ticket module:
-  - `TicketsPage.tsx` uses TanStack React Table with server-side sorting (click column headers to sort)
+  - `TicketsPage.tsx` uses TanStack React Table with server-side sorting (click column headers to sort), server-side filtering (`manualFiltering: true`), and server-side pagination (`manualPagination: true`) with a default page size of 10.
+  - Ticket detail view is accessed by clicking the Subject link. Row-level clicks do not navigate.
   - `TicketDetailPage.tsx` for ticket details, reply history, AI actions, and sidebar status/category editing
   - Ticket creation dialog and filtering by status, category, date range, search implemented
 - User module:
   - `UsersPage.tsx` with admin-only user management (create, edit, delete)
   - Admin rows do not render a delete button (intentional UI decision)
   - Role field is required when creating users
+- Database:
+  - Seeding includes 100 realistic helpdesk tickets with diverse categories, statuses, and dates via `backend/prisma/seed-tickets.ts` for testing sorting, filtering, and pagination.
 - Email ingestion:
   - `POST /api/tickets/incoming-email` accepts support email payloads and creates tickets automatically
   - AI classification is applied on ingestion
@@ -253,7 +256,7 @@ The project currently expects these environment variables:
 
 - database name: not explicit in code, derived from `DATABASE_URL`
 - migrations: Prisma migration scripts are not shown, but schema is managed by `prisma` and `db:migrate` scripts
-- seed: `backend/prisma/seed.ts` creates admin and agent users, knowledge base articles, sample tickets, and one sample reply
+- seed: `backend/prisma/seed.ts` creates admin and agent users, knowledge base articles, sample tickets, and one sample reply. A separate seeder `backend/prisma/seed-tickets.ts` generates 100 realistic, diverse tickets spread across different dates, categories, and statuses.
 - sample users:
   - `admin@sahayak.ai` / `admin123` role `ADMIN`
   - `agent@sahayak.ai` / `agent123` role `AGENT`
@@ -261,6 +264,7 @@ The project currently expects these environment variables:
   - "Unable to login to account" assigned to agent
   - "Payment charged twice" assigned to agent with a sample reply
   - "Feature request: export data" unassigned manual ticket
+  - 100 additional diverse tickets seeded via `npx tsx prisma/seed-tickets.ts`
 
 # 7. Current Issues
 
@@ -287,7 +291,9 @@ The project currently expects these environment variables:
   - shadcn is partially integrated for accessible UI primitives; the project uses token-based styling
   - `TicketStatus` and `TicketCategory` are declared as `as const` objects with exported string literal union types in `frontend/src/types/index.ts` — not as TypeScript enums — for better type ergonomics
   - Admin rows in the user table do not have a delete button (intentional UI decision)
-  - Ticket list uses TanStack React Table with `manualSorting: true`; sorting state is synced to the server query via `sortBy` and `sortOrder` params
+  - Ticket list uses TanStack React Table with `manualSorting: true`, `manualFiltering: true`, and `manualPagination: true` (page size default 10). Sorting state is synced to `sortBy` and `sortOrder`, column filters to `status` and `category` API queries, and page navigation to `page`/`limit`.
+  - Reusable `.link` CSS class is defined under `@layer components` in `index.css` for consistent link styling (e.g. subject button/link).
+  - Ticket navigation is triggered specifically by clicking the Subject link button on the table, not the whole row.
 - Architecture decisions:
   - Frontend and backend are separate packages under the same monorepo
   - Backend serves the frontend build as static files and provides the API under `/api`
@@ -430,7 +436,9 @@ This project is a fully functional React + Vite + TypeScript helpdesk SPA with a
 - Use `UserRole` enum from the same file when assigning or checking user roles.
 - Backend validator schemas are centralized in `backend/src/validators.ts`. Shared Zod schemas live in `core/src/index.ts` and should be imported from `"core"`.
 - All async route handlers in Express must use `try/catch` with `next(err)` to forward errors to the error middleware.
-- The ticket listing endpoint supports `sortBy` and `sortOrder` query params. The frontend uses TanStack React Table with `manualSorting: true` and syncs sorting state to backend API calls.
+- The ticket listing endpoint supports `sortBy`, `sortOrder`, filtering, and pagination query params. The frontend uses TanStack React Table with `manualSorting: true`, `manualFiltering: true`, and `manualPagination: true` (default page size 10), and syncs its state to backend API calls.
+- Navigation to a ticket details page is triggered strictly by clicking the Subject link button, not the entire table row.
+- Link styling should use the reusable `.link` CSS class.
 - `POST /api/tickets/incoming-email` is an unauthenticated webhook secured by `X-Webhook-Secret`. A valid JWT is accepted as a fallback to support the admin simulation UI in `EmailSetupPage.tsx`.
 - Admin users cannot be deleted from the UI (no delete button rendered for admin rows).
 - The `role` field is required when creating users.

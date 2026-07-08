@@ -131,6 +131,16 @@ router.get("/:id", authMiddleware, async (req: AuthRequest, res, next) => {
 router.patch("/:id", authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const data = UpdateTicketSchema.parse(req.body);
+
+    if (data.assignedToId !== undefined && data.assignedToId !== null) {
+      const user = await prisma.user.findFirst({
+        where: { id: data.assignedToId, deleted: false },
+      });
+      if (!user) {
+        return res.status(400).json({ error: "Invalid assignedToId: User does not exist or is deleted." });
+      }
+    }
+
     const ticket = await prisma.ticket.update({
       where: { id: req.params.id },
       data,

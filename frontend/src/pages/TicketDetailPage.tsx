@@ -20,9 +20,11 @@ const TicketDetailPage: React.FC = () => {
   const [classifying, setClassifying] = useState(false);
   const [summarizing, setSummarizing] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
     fetchTicket();
+    fetchUsers();
   }, [id]);
 
   const fetchTicket = async () => {
@@ -35,6 +37,15 @@ const TicketDetailPage: React.FC = () => {
       navigate("/tickets");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const data: any = await api.getUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
     }
   };
 
@@ -53,6 +64,17 @@ const TicketDetailPage: React.FC = () => {
       setTicket(updated);
     } catch (error) {
       alert("Failed to update category");
+    }
+  };
+
+  const handleAssigneeChange = async (userId: string) => {
+    try {
+      const updated = await api.updateTicket(id!, {
+        assignedToId: userId === "" ? null : userId,
+      });
+      setTicket(updated);
+    } catch (error) {
+      alert("Failed to update assignee");
     }
   };
 
@@ -294,6 +316,23 @@ const TicketDetailPage: React.FC = () => {
               {Object.values(TicketCategory).map((cat) => (
                 <option key={cat} value={cat}>
                   {cat.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assigned Agent */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-3">Assigned Agent</h3>
+            <select
+              value={ticket.assignedToId || ""}
+              onChange={(e) => handleAssigneeChange(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+            >
+              <option value="">Unassigned</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name} ({u.role})
                 </option>
               ))}
             </select>

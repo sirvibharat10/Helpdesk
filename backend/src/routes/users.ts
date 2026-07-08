@@ -8,8 +8,8 @@ import { emailService } from "../services/emailService.js";
 const router = Router();
 const prisma = new PrismaClient();
 
-// Get all users (admin only)
-router.get("/", authMiddleware, adminMiddleware, async (req: AuthRequest, res, next) => {
+// Get all users (admin or agent)
+router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const users = await prisma.user.findMany({
       where: { deleted: false },
