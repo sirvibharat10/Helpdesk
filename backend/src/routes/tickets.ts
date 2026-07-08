@@ -5,6 +5,7 @@ import {
   CreateTicketSchema,
   UpdateTicketSchema,
   CreateReplySchema,
+  IncomingEmailSchema,
 } from "../validators.js";
 import { aiService } from "../services/aiService.js";
 import { emailService } from "../services/emailService.js";
@@ -282,5 +283,42 @@ router.post(
     }
   },
 );
+
+// Webhook for incoming email (unauthenticated)
+router.post("/incoming-email", async (req, res, next) => {
+  try {
+    const data = IncomingEmailSchema.parse(req.body);
+
+    let category = "GENERAL_QUESTION";
+    let aiClassified = false;
+    try {
+      const classified = await aiService.classifyTicket(data.subject, data.body);
+      if (classified) {
+        category = classified;
+        aiClassified = true;
+      }
+    } catch (aiError) {
+      console.error("AI classification failed on incoming email:", aiError);
+    }
+
+    const ticket = await prisma.ticket.create({
+      data: {
+        subject: data.subject,
+        body: data.body,
+        fromEmail: data.fromEmail,
+        fromName: data.fromName || data.fromEmail.split("@")[0],
+        source: "EMAIL",
+        status: "NEW",
+        category: category as any,
+        aiClassified,
+      },
+      include: { replies: true },
+    });
+
+    res.status(201).json(ticket);
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router;

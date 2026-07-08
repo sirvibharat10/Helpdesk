@@ -134,4 +134,11 @@ export const api = {
       body: JSON.stringify(data),
     });
   },
+
+  simulateIncomingEmail(data: any) {
+    return this.request("/tickets/incoming-email", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
 };

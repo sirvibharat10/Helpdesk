@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createUserSchema } from "core";
+import { createUserSchema, incomingEmailSchema } from "core";
 
 export const LoginSchema = z.object({
   email: z.string().email(),
@@ -52,3 +52,5 @@ export const DemoInquirySchema = z.object({
     "GENERAL_INQUIRY",
   ]),
 });
+
+export const IncomingEmailSchema = incomingEmailSchema;

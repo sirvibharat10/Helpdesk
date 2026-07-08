@@ -26,6 +26,7 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "concurrently": "^8.2.2"
   },
   "workspaces": [
