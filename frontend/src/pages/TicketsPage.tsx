@@ -126,9 +126,12 @@ const TicketsPage: React.FC = () => {
         accessorKey: "subject",
         header: "Subject",
         cell: (info) => (
-          <span className="font-medium text-blue-600">
+          <button
+            className="link text-left"
+            onClick={() => navigate(`/tickets/${(info.row.original as any).id}`)}
+          >
             {info.getValue() as string}
-          </span>
+          </button>
         ),
       },
       {
@@ -328,8 +331,7 @@ const TicketsPage: React.FC = () => {
                     {table.getRowModel().rows.map((row) => (
                       <tr
                         key={row.id}
-                        className="hover:bg-slate-50 cursor-pointer"
-                        onClick={() => navigate(`/tickets/${row.original.id}`)}
+                        className="hover:bg-slate-50"
                       >
                         {row.getVisibleCells().map((cell) => (
                           <td

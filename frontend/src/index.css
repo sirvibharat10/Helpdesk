@@ -155,6 +155,10 @@ body {
   .badge-closed {
     @apply bg-slate-100 text-slate-800;
   }
+
+  .link {
+    @apply font-medium text-blue-600 underline-offset-4 hover:underline;
+  }
 }
 
 
