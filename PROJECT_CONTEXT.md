@@ -32,7 +32,7 @@
 
 # 2. Current Project Status
 
-The project is partially implemented and wired end-to-end but currently blocked by frontend build issues.
+The project is fully functional and building successfully end-to-end.
 
 - Authentication:
   - Backend login endpoint exists at `/api/auth/login`
@@ -40,54 +40,41 @@ The project is partially implemented and wired end-to-end but currently blocked 
   - Frontend stores `auth_token` and `auth_user` in localStorage
   - Protected routes are implemented in `frontend/src/App.tsx`
 - Backend APIs:
-  - `/api/auth/login`
-  - `/api/auth/me`
-  - `/api/tickets` GET, POST
+  - `/api/auth/login`, `/api/auth/me`
+  - `/api/tickets` GET (with server-side sorting and filtering), POST
   - `/api/tickets/:id` GET, PATCH, DELETE
   - `/api/tickets/:id/replies` POST
-  - `/api/tickets/:id/classify` POST
-  - `/api/tickets/:id/summarize` POST
-  - `/api/tickets/:id/suggest-reply` POST
+  - `/api/tickets/:id/classify`, `/api/tickets/:id/summarize`, `/api/tickets/:id/suggest-reply` POST
+  - `/api/tickets/incoming-email` POST (unauthenticated webhook, secured by `WEBHOOK_SECRET` header)
   - `/api/users` GET, POST, PATCH, DELETE
   - `/api/settings` GET
   - `/api/settings/demo-inquiry` POST
-- Prisma models:
-  - User
-  - Ticket
-  - Reply
-  - KnowledgeBase
-  - Enums: Role, TicketStatus, TicketCategory, TicketSource
-- Database setup:
-  - `backend/prisma/schema.prisma`
-  - `backend/prisma/seed.ts`
-  - `backend/package.json` scripts for `db:push`, `db:migrate`, `db:studio`, `db:seed`
+- Frontend types:
+  - `UserRole` TypeScript enum in `frontend/src/types/index.ts`
+  - `TicketStatus` and `TicketCategory` declared as `as const` objects with exported union types
 - Dashboard:
-  - `frontend/src/pages/DashboardPage.tsx` exists and displays ticket stats and recent tickets
+  - `DashboardPage.tsx` displays ticket stats and recent tickets sorted by newest first
 - Ticket module:
-  - Ticket listing in `frontend/src/pages/TicketsPage.tsx`
-  - Ticket detail view in `frontend/src/pages/TicketDetailPage.tsx`
-  - Ticket creation dialog and filtering implemented
+  - `TicketsPage.tsx` uses TanStack React Table with server-side sorting (click column headers to sort)
+  - `TicketDetailPage.tsx` for ticket details, reply history, AI actions, and sidebar status/category editing
+  - Ticket creation dialog and filtering by status, category, date range, search implemented
 - User module:
-  - `frontend/src/pages/UsersPage.tsx` with admin-only user management
-  - Backend user CRUD endpoints implemented
-- AI integration:
-  - `backend/src/services/aiService.ts` uses `@google/generative-ai` Gemini model
-  - Ticket classify, summarize, suggest reply endpoints implemented
-- Email integration:
-  - `backend/src/services/emailService.ts` uses `resend` for outgoing email
-  - `backend/src/services/emailPollerService.ts` contains Gmail polling placeholder logic
-  - `/api/settings/demo-inquiry` endpoint exists for demo inquiry notification
-- Components created:
-  - `Button`, `Badge`, `Dialog`, `Input`, `Textarea`, `Layout`
-  - shadcn button variant in `src/components/ui/button.tsx`
-- Pages completed:
+  - `UsersPage.tsx` with admin-only user management (create, edit, delete)
+  - Admin rows do not render a delete button (intentional UI decision)
+  - Role field is required when creating users
+- Email ingestion:
+  - `POST /api/tickets/incoming-email` accepts support email payloads and creates tickets automatically
+  - AI classification is applied on ingestion
+  - Source is set to `"EMAIL"` for ingested tickets
+  - `EmailSetupPage.tsx` includes a Simulate Support Email panel for admin testing
+- E2E testing:
+  - Playwright test suites: `e2e/tickets.spec.ts`, `e2e/users.spec.ts`
+  - Tests cover ticket ingestion (UI and webhook), user CRUD operations
+  - Env vars `WEBHOOK_SECRET` and `API_BASE_URL` are loaded from `backend/.env` via dotenv in test setup
+- Pages:
   - Landing, Login, Dashboard, Tickets, TicketDetail, Users, EmailSetup
-- Utilities:
-  - `frontend/src/lib/api.ts` handles API requests and auth headers
-  - `frontend/src/lib/auth.ts` handles login state and localStorage
-  - `frontend/src/lib/utils.ts` exports `cn`, and currently has placeholder format helpers
 - Current routing:
-  - `/` -> Landing or Dashboard depending on auth
+  - `/` → Landing or Dashboard depending on auth
   - `/login`
   - `/dashboard`
   - `/tickets`
@@ -166,9 +153,11 @@ The project is partially implemented and wired end-to-end but currently blocked 
 
 - `GET /api/tickets`
   - headers: auth token
-  - query params: `status`, `category`, `search`, `dateFrom`, `dateTo`, `page`, `limit`
+  - query params: `status`, `category`, `search`, `dateFrom`, `dateTo`, `page`, `limit`, `sortBy`, `sortOrder`
+  - `sortBy` allowed values: `subject`, `fromEmail`, `status`, `category`, `createdAt` (default: `createdAt`)
+  - `sortOrder` allowed values: `asc`, `desc` (default: `desc`)
   - response: `{ tickets, pagination }`
-  - purpose: list tickets and filter by user role for agents
+  - purpose: list tickets, filter by user role for agents, server-side sorted
 - `POST /api/tickets`
   - headers: auth token
   - body: ticket creation payload
@@ -204,6 +193,11 @@ The project is partially implemented and wired end-to-end but currently blocked 
   - headers: auth token
   - response: updated ticket after reply suggestion
   - purpose: generate suggested reply from AI based on knowledge base
+- `POST /api/tickets/incoming-email`
+  - no auth required; secured by `X-Webhook-Secret` header or valid JWT fallback
+  - body: `{ fromEmail, fromName?, subject, body }`
+  - response: created ticket
+  - purpose: convert incoming support email payloads to tickets, auto-classified by AI
 
 ## User endpoints
 
@@ -252,6 +246,8 @@ The project currently expects these environment variables:
 - `GMAIL_APP_PASSWORD`: Gmail app-specific password for polling
 - `SUPPORT_EMAIL`: support email address shown in settings
 - `PORT`: backend port, default `3001`
+- `WEBHOOK_SECRET`: shared secret used to authenticate calls to `POST /api/tickets/incoming-email` via the `X-Webhook-Secret` header
+- `API_BASE_URL`: base URL of the backend API (e.g. `http://localhost:3001`), used by E2E tests
 
 # 6. Database
 
@@ -268,52 +264,19 @@ The project currently expects these environment variables:
 
 # 7. Current Issues
 
-## Tailwind CSS issue
-
-- `frontend/tailwind.config.js` was previously customized incorrectly and later overwritten, leaving only a default config.
-- Tailwind v4 plugin setup is being used but the `tailwind.config.js` file does not define the required token colors needed for shadcn utilities.
-
-## shadcn configuration
-
-- `frontend/components.json` exists and points to a shadcn setup, but the current `tailwind.config.js` is not matching the generated shadcn theme.
-- `frontend/src/index.css` imports `shadcn/tailwind.css` and contains `@apply` lines that depend on custom shadcn theme utilities.
-
-## border-border error
-
-- The `border-border` class is being used by the shadcn button variant and in `frontend/src/index.css`.
-- Tailwind currently does not know how to resolve this class because the theme token `border` is not configured in `tailwind.config.js`.
-- The presence of `@apply border-border` inside `index.css` indicates shadcn expects token-based classes.
-
-## frontend build issues
-
-- The frontend fails to build with `npm run build` due to the `border-border` utility being unknown.
-- `frontend/tailwind.config.js` is currently not properly configured for production-grade shadcn + Tailwind v4 integration.
-- A prior attempt to upgrade dependencies changed `tailwind.config.js` back to default and may have disrupted the config.
-
-## broken pages
-
-- No explicit page-level errors are known beyond the build failure.
-- Functional issues may exist in pages that depend on AI or email configuration, but the main blocker is styling/build.
-
-## other issues
-
-- `frontend/src/lib/utils.ts` had missing export functions for `formatDate` and `formatDateTime`, which blocked `npm run build` after the Tailwind fix.
-- `shadcn-ui` dependency remains in `frontend/package.json` though the project is using `shadcn@4.x`, creating potential confusion.
+- `emailPollerService` is a placeholder and will not actually poll Gmail until credentials and IMAP logic are implemented.
+- AI functionality depends on `GEMINI_API_KEY`; if missing, AI endpoints may return defaults but may log errors.
+- `axios` is installed as a frontend dependency but the project uses the `fetch`-based `api.ts` wrapper; axios is unused.
 
 # 8. Pending Tasks
 
-- Fix `frontend/tailwind.config.js` to define all shadcn token colors and enable `darkMode: ["class"]`
-- Ensure `frontend/src/index.css` includes the proper `@layer base` block and theme CSS variables for shadcn
-- Resolve `border-border` utility generation and verify Tailwind builds successfully
-- Remove or reconcile stale `shadcn-ui` dependency if not needed
-- Confirm `frontend/components.json` matches actual component/theme config
-- Check if `shadcn/tailwind.css` path is valid and imported correctly
-- Run `npm install` in `frontend` after config fix
-- Rebuild frontend with `npm run build`
-- Verify all routes and pages render in development
-- Ensure AI endpoints are protected and functional
-- Validate email sending only if `RESEND_API_KEY` and required env vars are configured
-- Confirm `emailPollerService` behavior or remove placeholder logic if unused
+- Implement Gmail IMAP polling in `emailPollerService` for real-world email ingestion
+- Add ticket assignment workflows and agent notifications
+- Implement real knowledge base search and article management
+- Add user profile and password reset flows
+- Add audit logs and ticket history tracking
+- Harden auth with session expiration handling
+- Add proper error boundary pages and frontend loading states
 
 # 9. Codebase Notes
 
@@ -321,31 +284,39 @@ The project currently expects these environment variables:
   - The backend uses Prisma with PostgreSQL and Express routes separate by domain
   - JWT auth is stateless and stored in localStorage on the frontend
   - The frontend uses a custom `api` wrapper for fetch requests, automatically injecting auth headers
-  - shadcn is partially integrated and has generated a UI button variant; the project appears to use token-based styling
+  - shadcn is partially integrated for accessible UI primitives; the project uses token-based styling
+  - `TicketStatus` and `TicketCategory` are declared as `as const` objects with exported string literal union types in `frontend/src/types/index.ts` — not as TypeScript enums — for better type ergonomics
+  - Admin rows in the user table do not have a delete button (intentional UI decision)
+  - Ticket list uses TanStack React Table with `manualSorting: true`; sorting state is synced to the server query via `sortBy` and `sortOrder` params
 - Architecture decisions:
   - Frontend and backend are separate packages under the same monorepo
   - Backend serves the frontend build as static files and provides the API under `/api`
   - AI services are abstracted behind `aiService` to allow later swap
   - Email service is abstracted behind `emailService`, with Resend for outbound mail and Gmail polling stubbed
+  - Zod validation schemas are shared between backend and frontend via the `core` package (`core/src/index.ts`)
 - Libraries used:
   - `@google/generative-ai` for Gemini AI
   - `resend` for email delivery
   - `react-router-dom` for routing
+  - `@tanstack/react-table` for the tickets data table with server-side sorting
+  - `@tanstack/react-query` for data fetching
   - `@radix-ui/react-dialog` and `@radix-ui/react-select` for UI primitives
   - `class-variance-authority` and `tailwind-merge` for Tailwind class composition
   - `zod` for request/response validation
   - `vite` for frontend bundling
+  - `react-hook-form` + `@hookform/resolvers/zod` for form handling
+  - `jsonwebtoken` for JWT generation and verification (also used in webhook fallback auth)
+  - `playwright` + `dotenv` for E2E testing
 
 # 10. Future Development
 
-- Fix Tailwind/shadcn build and stabilize all theme tokens
-- Add missing contact/email reply notifications and Gmail polling
+- Implement Gmail IMAP polling in `emailPollerService`
+- Add missing contact/email reply notifications
 - Improve dashboard analytics and ticket filtering UX
 - Implement ticket assignment workflows and notifications
 - Add real knowledge base search and article management
 - Harden auth with refresh tokens or session expiration
 - Add proper error boundary pages and frontend loading states
-- Add test coverage for backend routes and frontend pages
 - Implement user profile and password reset flows
 - Add audit logs and ticket history tracking
 
@@ -367,19 +338,21 @@ The project currently expects these environment variables:
 
 - `react`, `react-dom`: UI library
 - `react-router-dom`: client routing
-- `axios`: HTTP requests? actually the project uses fetch; axios is installed but not necessarily used
-- `react-hook-form`, `@hookform/resolvers`: form state management and validation integration
+- `axios`: installed but unused; project uses the custom fetch-based `api.ts` wrapper
+- `react-hook-form`, `@hookform/resolvers`: form state management and Zod resolver integration
 - `lucide-react`: icon library
 - `tailwindcss`: CSS utility framework
 - `@tailwindcss/postcss`: Tailwind v4 PostCSS plugin
 - `postcss`, `autoprefixer`: CSS processing pipeline
 - `shadcn`: shadcn UI CLI/runtime support
-- `shadcn-ui`: legacy shadcn dependency, likely stale
 - `@radix-ui/react-dialog`, `@radix-ui/react-select`: accessible UI primitives
 - `class-variance-authority`: class variant utilities for component styling
 - `tailwind-merge`: merge Tailwind class names safely
 - `tw-animate-css`: animation utilities
 - `zod`: schema validation in frontend forms
+- `@tanstack/react-table`: headless table library used for ticket listing with server-side sorting
+- `@tanstack/react-query`: server state management and query caching
+- `core`: shared workspace package for Zod validation schemas
 
 # 12. Important Files
 
@@ -443,29 +416,29 @@ The project currently expects these environment variables:
 
 # 14. Known Bugs
 
-- `border-border` utility is not generated because Tailwind config is incomplete and not exposing theme tokens required by shadcn.
-- `frontend` build currently fails with a PostCSS error from `@apply border-border`.
-- `frontend/tailwind.config.js` was overwritten and does not contain the previously attempted theme customizations.
-- `frontend/src/lib/utils.ts` was missing expected helper exports used by pages.
-- `shadcn-ui` dependency remains in `frontend/package.json` even though the app uses `shadcn@4.x`; this creates dependency confusion.
 - `emailPollerService` is a placeholder and will not actually poll Gmail until credentials and IMAP logic are implemented.
-- AI functionality depends on `GEMINI_API_KEY`; if missing, AI endpoints may return defaults but may still log errors.
+- AI functionality depends on `GEMINI_API_KEY`; if missing, AI endpoints may return defaults but may log errors.
+- `axios` is installed as a frontend dependency but is not used; the project relies on the custom fetch-based `api.ts`.
 
 # 15. AI Handover
 
-This project is a React + Vite + TypeScript app with an Express + Prisma backend. The frontend is currently blocked by Tailwind/shadcn configuration issues, specifically the `border-border` utility used by the shadcn button component and base CSS.
+This project is a fully functional React + Vite + TypeScript helpdesk SPA with an Express + Prisma backend. The frontend builds successfully. All previously reported build and configuration issues have been resolved.
 
-Do not remove Tailwind classes like `border-border` or `outline-ring`; those classes are expected by the shadcn theme and must be enabled through proper Tailwind theme configuration. Do not change the existing API route definitions or page routing unless necessary for fixes.
+**Key conventions to follow:**
 
-Primary fix order:
+- Use `TicketStatus` and `TicketCategory` from `frontend/src/types/index.ts` when checking or rendering status/category values. These are `as const` objects with exported union types — do **not** redeclare them as TypeScript enums.
+- Use `UserRole` enum from the same file when assigning or checking user roles.
+- Backend validator schemas are centralized in `backend/src/validators.ts`. Shared Zod schemas live in `core/src/index.ts` and should be imported from `"core"`.
+- All async route handlers in Express must use `try/catch` with `next(err)` to forward errors to the error middleware.
+- The ticket listing endpoint supports `sortBy` and `sortOrder` query params. The frontend uses TanStack React Table with `manualSorting: true` and syncs sorting state to backend API calls.
+- `POST /api/tickets/incoming-email` is an unauthenticated webhook secured by `X-Webhook-Secret`. A valid JWT is accepted as a fallback to support the admin simulation UI in `EmailSetupPage.tsx`.
+- Admin users cannot be deleted from the UI (no delete button rendered for admin rows).
+- The `role` field is required when creating users.
 
-1. Restore proper `frontend/tailwind.config.js` so theme tokens like `border`, `input`, `ring`, `background`, and `foreground` are defined.
-2. Confirm `frontend/src/index.css` loads `shadcn/tailwind.css` and defines CSS variables in a `@layer base` block.
-3. Ensure `@tailwindcss/postcss` and `tailwindcss` versions are compatible and installed.
-4. Rebuild frontend with `npm run build`.
+**Sample credentials (from seed):**
+- `admin@sahayak.ai` / `admin123` (ADMIN)
+- `agent@sahayak.ai` / `agent123` (AGENT)
 
-Once the styling build is fixed, verify that the backend routes and auth flow are operational using sample credentials from the seed file.
-
-The backend is functional for login, ticket management, user CRUD, AI actions, and demo email inquiries, but email polling is not implemented. The `backend` serves the frontend build and exposes API routes under `/api`.
-
-The document above is the current snapshot of the repository state and should be used as the single source of truth for continuing development.
+**Ports:**
+- Backend: `http://localhost:3001`
+- Frontend dev server: `http://localhost:5173`

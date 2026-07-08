@@ -26,6 +26,8 @@ router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
       dateTo,
       page = "1",
       limit = "20",
+      sortBy = "createdAt",
+      sortOrder = "desc",
     } = req.query;
 
     const where: any = {};
@@ -54,13 +56,17 @@ router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
 
     const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
+    const allowedSortFields = ["subject", "fromEmail", "status", "category", "createdAt"];
+    const resolvedSortBy = allowedSortFields.includes(sortBy as string) ? (sortBy as string) : "createdAt";
+    const resolvedSortOrder = (sortOrder as string).toLowerCase() === "asc" ? "asc" : "desc";
+
     const [tickets, total] = await Promise.all([
       prisma.ticket.findMany({
         where,
         include: { assignedTo: true, replies: true },
         skip,
         take: parseInt(limit as string),
-        orderBy: { createdAt: "desc" },
+        orderBy: { [resolvedSortBy]: resolvedSortOrder },
       }),
       prisma.ticket.count({ where }),
     ]);

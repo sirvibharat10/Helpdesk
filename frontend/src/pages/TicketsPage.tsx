@@ -12,6 +12,13 @@ import Dialog from "../components/Dialog";
 import Textarea from "../components/Textarea";
 import { formatDate } from "../lib/utils";
 import { TicketStatus, TicketCategory } from "../types";
+import {
+  useReactTable,
+  getCoreRowModel,
+  ColumnDef,
+  flexRender,
+  SortingState,
+} from "@tanstack/react-table";
 
 const TicketsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -47,11 +54,90 @@ const TicketsPage: React.FC = () => {
     status: "",
     category: "",
     search: "",
+    sortBy: "createdAt",
+    sortOrder: "desc",
   });
+
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: "createdAt", desc: true },
+  ]);
+
+  useEffect(() => {
+    if (sorting.length > 0) {
+      const sortField = sorting[0].id;
+      const sortOrderVal = sorting[0].desc ? "desc" : "asc";
+      setFilters((prev) => ({
+        ...prev,
+        sortBy: sortField,
+        sortOrder: sortOrderVal,
+      }));
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      }));
+    }
+  }, [sorting]);
 
   useEffect(() => {
     fetchTickets();
   }, [filters]);
+
+  const columns = React.useMemo<ColumnDef<any>[]>(
+    () => [
+      {
+        accessorKey: "subject",
+        header: "Subject",
+        cell: (info) => (
+          <span className="font-medium text-blue-600">
+            {info.getValue() as string}
+          </span>
+        ),
+      },
+      {
+        accessorKey: "fromEmail",
+        header: "From",
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: (info) => {
+          const val = info.getValue() as string;
+          return (
+            <Badge variant={getStatusBadgeVariant(val)}>
+              {val}
+            </Badge>
+          );
+        },
+      },
+      {
+        accessorKey: "category",
+        header: "Category",
+        cell: (info) => {
+          const val = info.getValue() as string;
+          return val.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+        },
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Created",
+        cell: (info) => formatDate(info.getValue() as string),
+      },
+    ],
+    []
+  );
+
+  const table = useReactTable({
+    data: tickets,
+    columns,
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    manualSorting: true,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   const fetchTickets = async () => {
     try {
@@ -153,50 +239,54 @@ const TicketsPage: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                      Subject
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                      From
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-                      Created
-                    </th>
-                  </tr>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => {
+                        const isSortable = ["subject", "fromEmail", "status", "category", "createdAt"].includes(header.id);
+                        return (
+                          <th
+                            key={header.id}
+                            onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-slate-900 ${isSortable ? 'cursor-pointer select-none hover:bg-slate-100' : ''}`}
+                          >
+                            <div className="flex items-center gap-1">
+                              {flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                              {isSortable && (
+                                <span className="text-slate-400 text-xs">
+                                  {{
+                                    asc: " 🔼",
+                                    desc: " 🔽",
+                                  }[header.column.getIsSorted() as string] ?? " ⇅"}
+                                </span>
+                              )}
+                            </div>
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {[...tickets]
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((ticket) => (
+                  {table.getRowModel().rows.map((row) => (
                     <tr
-                      key={ticket.id}
+                      key={row.id}
                       className="hover:bg-slate-50 cursor-pointer"
-                      onClick={() => navigate(`/tickets/${ticket.id}`)}
+                      onClick={() => navigate(`/tickets/${row.original.id}`)}
                     >
-                      <td className="px-6 py-4 text-sm font-medium text-blue-600">
-                        {ticket.subject}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {ticket.fromEmail}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <Badge variant={getStatusBadgeVariant(ticket.status)}>
-                          {ticket.status}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {ticket.category}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {formatDate(ticket.createdAt)}
-                      </td>
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-6 py-4 text-sm text-slate-600"
+                        >
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </td>
+                      ))}
                     </tr>
                   ))}
                 </tbody>
