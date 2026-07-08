@@ -142,4 +142,58 @@ describe("TicketDetailPage Assignment & Info Tests", () => {
       });
     });
   });
+
+  it("triggers api.updateTicket when status is changed", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.updateTicket).mockResolvedValue({
+      ...mockTicket,
+      status: "OPEN",
+    });
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole("combobox");
+    const statusSelect = selects[0]; // Status is the first dropdown
+    expect(statusSelect).toHaveValue("NEW");
+
+    fireEvent.change(statusSelect, { target: { value: "OPEN" } });
+
+    await waitFor(() => {
+      expect(api.updateTicket).toHaveBeenCalledWith("ticket-123", {
+        status: "OPEN",
+      });
+    });
+  });
+
+  it("triggers api.updateTicket when category is changed", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.updateTicket).mockResolvedValue({
+      ...mockTicket,
+      category: "REFUND_REQUEST",
+    });
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const selects = screen.getAllByRole("combobox");
+    const categorySelect = selects[1]; // Category is the second dropdown
+    expect(categorySelect).toHaveValue("TECHNICAL_QUESTION");
+
+    fireEvent.change(categorySelect, { target: { value: "REFUND_REQUEST" } });
+
+    await waitFor(() => {
+      expect(api.updateTicket).toHaveBeenCalledWith("ticket-123", {
+        category: "REFUND_REQUEST",
+      });
+    });
+  });
 });

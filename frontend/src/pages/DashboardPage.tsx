@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Badge from "../components/Badge";
-import { formatDate } from "../lib/utils";
+import { formatDate, formatStatus } from "../lib/utils";
 import { TicketStatus } from "../types";
 
 const DashboardPage: React.FC = () => {
@@ -119,7 +119,7 @@ const DashboardPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 text-sm">
                         <Badge variant={getStatusBadgeVariant(ticket.status)}>
-                          {ticket.status}
+                          {formatStatus(ticket.status)}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600">

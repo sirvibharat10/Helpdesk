@@ -10,7 +10,7 @@ import Input from "../components/Input";
 import Badge from "../components/Badge";
 import Dialog from "../components/Dialog";
 import Textarea from "../components/Textarea";
-import { formatDate } from "../lib/utils";
+import { formatDate, formatStatus, formatCategory } from "../lib/utils";
 import { TicketStatus, TicketCategory } from "../types";
 import {
   useReactTable,
@@ -145,7 +145,7 @@ const TicketsPage: React.FC = () => {
           const val = info.getValue() as string;
           return (
             <Badge variant={getStatusBadgeVariant(val)}>
-              {val}
+              {formatStatus(val)}
             </Badge>
           );
         },
@@ -155,7 +155,7 @@ const TicketsPage: React.FC = () => {
         header: "Category",
         cell: (info) => {
           const val = info.getValue() as string;
-          return val.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ");
+          return formatCategory(val);
         },
       },
       {
@@ -228,10 +228,127 @@ const TicketsPage: React.FC = () => {
 
   return (
     <Layout title="Tickets">
-      <div className="space-y-6">
-        {/* Filters */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+        {/* Left Column: Tickets Table (main content) */}
+        <div className="lg:col-span-5 space-y-6">
+          {loading ? (
+            <div className="flex items-center justify-center p-12 bg-white rounded-xl shadow-sm border border-slate-200">
+              Loading...
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 border-b border-slate-200">
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => {
+                            const isSortable = ["subject", "fromEmail", "status", "category", "createdAt"].includes(header.id);
+                            return (
+                              <th
+                                key={header.id}
+                                onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
+                                className={`px-6 py-3 text-left text-sm font-semibold text-slate-900 ${isSortable ? 'cursor-pointer select-none hover:bg-slate-100' : ''}`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  {flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                                  {isSortable && (
+                                    <span className="text-slate-400 text-xs">
+                                      {{
+                                        asc: " 🔼",
+                                        desc: " 🔽",
+                                      }[header.column.getIsSorted() as string] ?? " ⇅"}
+                                    </span>
+                                  )}
+                                </div>
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {table.getRowModel().rows.map((row) => (
+                        <tr
+                          key={row.id}
+                          className="hover:bg-slate-50"
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <td
+                              key={cell.id}
+                              className="px-6 py-4 text-sm text-slate-600"
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext()
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Pagination controls */}
+              <div className="flex items-center justify-between px-6 py-4 border border-slate-200 bg-white rounded-xl">
+                <span className="text-sm text-slate-500">
+                  Showing{" "}
+                  {totalRows === 0
+                    ? 0
+                    : pagination.pageIndex * pagination.pageSize + 1}
+                  {" – "}
+                  {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalRows)}{" "}
+                  of {totalRows} tickets
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => table.previousPage()}
+                    disabled={!table.getCanPreviousPage()}
+                    className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                  >
+                    &larr; Previous
+                  </button>
+                  <span className="text-sm text-slate-600">
+                    Page {pagination.pageIndex + 1} of {table.getPageCount()}
+                  </span>
+                  <button
+                    onClick={() => table.nextPage()}
+                    disabled={!table.getCanNextPage()}
+                    className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                  >
+                    Next &rarr;
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Right Column: Sidebar Filters */}
+        <div className="space-y-6">
+          {/* Actions Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+            <Button onClick={() => setCreateDialogOpen(true)} className="w-full">
+              + New Ticket
+            </Button>
+            <Input
+              placeholder="Search..."
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
+            />
+          </div>
+
+          {/* Status Filter Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-3">Status</h3>
             <select
               value={(columnFilters.find((f) => f.id === "status")?.value as string) ?? ""}
               onChange={(e) => {
@@ -242,16 +359,20 @@ const TicketsPage: React.FC = () => {
                     : prev.filter((f) => f.id !== "status")
                 );
               }}
-              className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
             >
-              <option value="">All Status</option>
+              <option value="">All Statuses</option>
               {Object.values(TicketStatus).map((status) => (
                 <option key={status} value={status}>
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
+                  {formatStatus(status)}
                 </option>
               ))}
             </select>
+          </div>
 
+          {/* Category Filter Card */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-3">Category</h3>
             <select
               value={(columnFilters.find((f) => f.id === "category")?.value as string) ?? ""}
               onChange={(e) => {
@@ -262,128 +383,17 @@ const TicketsPage: React.FC = () => {
                     : prev.filter((f) => f.id !== "category")
                 );
               }}
-              className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
             >
               <option value="">All Categories</option>
               {Object.values(TicketCategory).map((cat) => (
                 <option key={cat} value={cat}>
-                  {cat.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
+                  {formatCategory(cat)}
                 </option>
               ))}
             </select>
-
-            <Input
-              placeholder="Search..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-            />
-
-            <Button onClick={() => setCreateDialogOpen(true)}>
-              + New Ticket
-            </Button>
           </div>
         </div>
-
-        {/* Tickets Table */}
-        {loading ? (
-          <div className="flex items-center justify-center p-12">
-            Loading...
-          </div>
-        ) : (
-          <>
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-slate-50 border-b border-slate-200">
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => {
-                          const isSortable = ["subject", "fromEmail", "status", "category", "createdAt"].includes(header.id);
-                          return (
-                            <th
-                              key={header.id}
-                              onClick={isSortable ? header.column.getToggleSortingHandler() : undefined}
-                              className={`px-6 py-3 text-left text-sm font-semibold text-slate-900 ${isSortable ? 'cursor-pointer select-none hover:bg-slate-100' : ''}`}
-                            >
-                              <div className="flex items-center gap-1">
-                                {flexRender(
-                                  header.column.columnDef.header,
-                                  header.getContext()
-                                )}
-                                {isSortable && (
-                                  <span className="text-slate-400 text-xs">
-                                    {{
-                                      asc: " 🔼",
-                                      desc: " 🔽",
-                                    }[header.column.getIsSorted() as string] ?? " ⇅"}
-                                  </span>
-                                )}
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {table.getRowModel().rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="hover:bg-slate-50"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <td
-                            key={cell.id}
-                            className="px-6 py-4 text-sm text-slate-600"
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Pagination controls */}
-            <div className="flex items-center justify-between px-6 py-4 border border-slate-200 bg-white rounded-xl">
-              <span className="text-sm text-slate-500">
-                Showing{" "}
-                {totalRows === 0
-                  ? 0
-                  : pagination.pageIndex * pagination.pageSize + 1}
-                {" – "}
-                {Math.min((pagination.pageIndex + 1) * pagination.pageSize, totalRows)}{" "}
-                of {totalRows} tickets
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                >
-                  &larr; Previous
-                </button>
-                <span className="text-sm text-slate-600">
-                  Page {pagination.pageIndex + 1} of {table.getPageCount()}
-                </span>
-                <button
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                >
-                  Next &rarr;
-                </button>
-              </div>
-            </div>
-          </>
-        )}
       </div>
 
       {/* Create Ticket Dialog */}

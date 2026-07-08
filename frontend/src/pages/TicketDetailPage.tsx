@@ -21,6 +21,9 @@ const TicketDetailPage: React.FC = () => {
   const [summarizing, setSummarizing] = useState(false);
   const [suggestingReply, setSuggestingReply] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingCategory, setUpdatingCategory] = useState(false);
+  const [updatingAssignee, setUpdatingAssignee] = useState(false);
 
   useEffect(() => {
     fetchTicket();
@@ -51,30 +54,39 @@ const TicketDetailPage: React.FC = () => {
 
   const handleStatusChange = async (newStatus: string) => {
     try {
+      setUpdatingStatus(true);
       const updated = await api.updateTicket(id!, { status: newStatus });
       setTicket(updated);
     } catch (error) {
       alert("Failed to update status");
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
   const handleCategoryChange = async (newCategory: string) => {
     try {
+      setUpdatingCategory(true);
       const updated = await api.updateTicket(id!, { category: newCategory });
       setTicket(updated);
     } catch (error) {
       alert("Failed to update category");
+    } finally {
+      setUpdatingCategory(false);
     }
   };
 
   const handleAssigneeChange = async (userId: string) => {
     try {
+      setUpdatingAssignee(true);
       const updated = await api.updateTicket(id!, {
         assignedToId: userId === "" ? null : userId,
       });
       setTicket(updated);
     } catch (error) {
       alert("Failed to update assignee");
+    } finally {
+      setUpdatingAssignee(false);
     }
   };
 
@@ -295,7 +307,8 @@ const TicketDetailPage: React.FC = () => {
             <select
               value={ticket.status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+              disabled={updatingStatus}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
             >
               {Object.values(TicketStatus).map((status) => (
                 <option key={status} value={status}>
@@ -311,7 +324,8 @@ const TicketDetailPage: React.FC = () => {
             <select
               value={ticket.category}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+              disabled={updatingCategory}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
             >
               {Object.values(TicketCategory).map((cat) => (
                 <option key={cat} value={cat}>
@@ -327,7 +341,8 @@ const TicketDetailPage: React.FC = () => {
             <select
               value={ticket.assignedToId || ""}
               onChange={(e) => handleAssigneeChange(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+              disabled={updatingAssignee}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
             >
               <option value="">Unassigned</option>
               {users.map((u) => (
