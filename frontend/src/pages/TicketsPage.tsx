@@ -18,6 +18,7 @@ import {
   ColumnDef,
   flexRender,
   SortingState,
+  ColumnFiltersState,
 } from "@tanstack/react-table";
 
 const TicketsPage: React.FC = () => {
@@ -62,6 +63,8 @@ const TicketsPage: React.FC = () => {
     { id: "createdAt", desc: true },
   ]);
 
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
   useEffect(() => {
     if (sorting.length > 0) {
       const sortField = sorting[0].id;
@@ -79,6 +82,17 @@ const TicketsPage: React.FC = () => {
       }));
     }
   }, [sorting]);
+
+  // Sync columnFilters → filters (server-side)
+  useEffect(() => {
+    const statusFilter = columnFilters.find((f) => f.id === "status");
+    const categoryFilter = columnFilters.find((f) => f.id === "category");
+    setFilters((prev) => ({
+      ...prev,
+      status: (statusFilter?.value as string) ?? "",
+      category: (categoryFilter?.value as string) ?? "",
+    }));
+  }, [columnFilters]);
 
   useEffect(() => {
     fetchTickets();
@@ -133,9 +147,12 @@ const TicketsPage: React.FC = () => {
     columns,
     state: {
       sorting,
+      columnFilters,
     },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     manualSorting: true,
+    manualFiltering: true,
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -186,10 +203,15 @@ const TicketsPage: React.FC = () => {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <select
-              value={filters.status}
-              onChange={(e) =>
-                setFilters({ ...filters, status: e.target.value })
-              }
+              value={(columnFilters.find((f) => f.id === "status")?.value as string) ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setColumnFilters((prev) =>
+                  val
+                    ? [...prev.filter((f) => f.id !== "status"), { id: "status", value: val }]
+                    : prev.filter((f) => f.id !== "status")
+                );
+              }}
               className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
             >
               <option value="">All Status</option>
@@ -201,10 +223,15 @@ const TicketsPage: React.FC = () => {
             </select>
 
             <select
-              value={filters.category}
-              onChange={(e) =>
-                setFilters({ ...filters, category: e.target.value })
-              }
+              value={(columnFilters.find((f) => f.id === "category")?.value as string) ?? ""}
+              onChange={(e) => {
+                const val = e.target.value;
+                setColumnFilters((prev) =>
+                  val
+                    ? [...prev.filter((f) => f.id !== "category"), { id: "category", value: val }]
+                    : prev.filter((f) => f.id !== "category")
+                );
+              }}
               className="px-4 py-2 border border-slate-300 rounded-lg bg-white"
             >
               <option value="">All Categories</option>
