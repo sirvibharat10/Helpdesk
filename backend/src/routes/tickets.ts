@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { authMiddleware, AuthRequest } from "../middleware.js";
+import jwt from "jsonwebtoken";
 import {
   CreateTicketSchema,
   UpdateTicketSchema,
@@ -284,9 +285,31 @@ router.post(
   },
 );
 
-// Webhook for incoming email (unauthenticated)
+// Webhook for incoming email (unauthenticated but optionally secured with a secret key)
 router.post("/incoming-email", async (req, res, next) => {
   try {
+    const webhookSecret = process.env.WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const requestSecret = req.headers["x-webhook-secret"] || req.query.secret;
+      if (requestSecret !== webhookSecret) {
+        // Fallback: check if valid authenticated admin/agent session
+        const authHeader = req.headers.authorization;
+        let isAuthenticated = false;
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+          const token = authHeader.split(" ")[1];
+          try {
+            jwt.verify(token, process.env.JWT_SECRET || "dev-secret-key-sahayak-2026");
+            isAuthenticated = true;
+          } catch (e) {
+            // Invalid token
+          }
+        }
+        if (!isAuthenticated) {
+          return res.status(401).json({ error: "Unauthorized: Invalid webhook secret" });
+        }
+      }
+    }
+
     const data = IncomingEmailSchema.parse(req.body);
 
     let category = "GENERAL_QUESTION";

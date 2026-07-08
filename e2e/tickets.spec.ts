@@ -1,4 +1,9 @@
 import { test, expect } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
+
+// Load environment variables from backend/.env file
+dotenv.config({ path: path.resolve(process.cwd(), "backend/.env") });
 
 test.describe("Support Email Ticket Ingestion E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
@@ -57,5 +62,48 @@ test.describe("Support Email Ticket Ingestion E2E Tests", () => {
     await expect(page.locator(`h2:has-text('${testSubject}')`)).toBeVisible();
     await expect(page.locator(`text=${testBody}`)).toBeVisible();
     await expect(page.locator(`text=${testName}`)).toBeVisible();
+  });
+
+  test("should successfully create a ticket by hitting the webhook API endpoint directly", async ({ page, request }) => {
+    const uniqueId = Date.now();
+    const testEmail = `webhook_api_${uniqueId}@example.com`;
+    const testName = `Webhook API Sender ${uniqueId}`;
+    const testSubject = `Direct Webhook API Ingestion - ${uniqueId}`;
+    const testBody = `This ticket is created by hitting the unauthenticated incoming-email webhook endpoint directly via E2E API request. ID: ${uniqueId}`;
+
+    const apiBaseUrl = process.env.API_BASE_URL || "http://localhost:3001";
+    const webhookSecret = process.env.WEBHOOK_SECRET || "";
+
+    // Post to the webhook endpoint directly via configured API_BASE_URL and WEBHOOK_SECRET
+    const response = await request.post(`${apiBaseUrl}/api/tickets/incoming-email`, {
+      headers: {
+        "X-Webhook-Secret": webhookSecret,
+      },
+      data: {
+        fromEmail: testEmail,
+        fromName: testName,
+        subject: testSubject,
+        body: testBody,
+      },
+    });
+
+    // Check response status and extract ticket ID
+    expect(response.ok()).toBeTruthy();
+    expect(response.status()).toBe(201);
+    const json = await response.json();
+    expect(json.id).toBeDefined();
+    expect(json.source).toBe("EMAIL");
+
+    // Verify the ticket shows up in the user interface (as the logged-in admin)
+    await page.goto("/tickets");
+    const ticketRow = page.locator(`tr:has-text('${testSubject}')`);
+    await expect(ticketRow).toBeVisible();
+    await expect(ticketRow).toContainText(testEmail);
+
+    // Click the row to verify the details page
+    await ticketRow.click();
+    await expect(page).toHaveURL(new RegExp(`/tickets/${json.id}`));
+    await expect(page.locator(`h2:has-text('${testSubject}')`)).toBeVisible();
+    await expect(page.locator(`text=${testBody}`)).toBeVisible();
   });
 });
