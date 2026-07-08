@@ -196,4 +196,168 @@ describe("TicketDetailPage Assignment & Info Tests", () => {
       });
     });
   });
+
+  it("renders the reply thread successfully when replies exist", async () => {
+    const ticketWithReplies = {
+      ...mockTicket,
+      replies: [
+        {
+          id: "reply-1",
+          body: "This is a reply body from agent",
+          isAI: false,
+          sentViaEmail: false,
+          senderType: "AGENT",
+          createdAt: "2026-07-08T12:05:00Z",
+          author: { name: "Agent Alpha" },
+        },
+        {
+          id: "reply-2",
+          body: "This is an AI generated response",
+          isAI: true,
+          sentViaEmail: true,
+          senderType: "AI",
+          createdAt: "2026-07-08T12:06:00Z",
+          author: null,
+        },
+      ],
+    };
+
+    vi.mocked(api.getTicketById).mockResolvedValue(ticketWithReplies);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Replies (2)")).toBeInTheDocument();
+    });
+
+    // Verify reply details
+    expect(screen.getByText("Agent Alpha")).toBeInTheDocument();
+    expect(screen.getByText("This is a reply body from agent")).toBeInTheDocument();
+
+    expect(screen.getByText("Bot")).toBeInTheDocument();
+    expect(screen.getByText("This is an AI generated response")).toBeInTheDocument();
+  });
+
+  it("submits a reply via email successfully", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.addReply).mockResolvedValue({
+      id: "new-reply-id",
+      body: "Sent via email test content",
+      isAI: false,
+      sentViaEmail: true,
+      createdAt: new Date().toISOString(),
+    });
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText("Type your reply...");
+    fireEvent.change(textarea, { target: { value: "Sent via email test content" } });
+
+    const sendButton = screen.getByText("Send via Email");
+    fireEvent.click(sendButton);
+
+    await waitFor(() => {
+      expect(api.addReply).toHaveBeenCalledWith("ticket-123", "Sent via email test content", true);
+    });
+  });
+
+  it("saves a reply as a note successfully", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.addReply).mockResolvedValue({
+      id: "new-reply-id",
+      body: "Save as note test content",
+      isAI: false,
+      sentViaEmail: false,
+      createdAt: new Date().toISOString(),
+    });
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText("Type your reply...");
+    fireEvent.change(textarea, { target: { value: "Save as note test content" } });
+
+    const saveButton = screen.getByText("Save as Note");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.addReply).toHaveBeenCalledWith("ticket-123", "Save as note test content", false);
+    });
+  });
+
+  it("does not call api.addReply when body is empty or whitespace", async () => {
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const sendButton = screen.getByText("Send via Email");
+    fireEvent.click(sendButton);
+
+    expect(api.addReply).not.toHaveBeenCalled();
+  });
+
+  it("triggers alert and preserves textarea content when api.addReply fails", async () => {
+    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
+    vi.mocked(api.getTicketById).mockResolvedValue(mockTicket);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+    vi.mocked(api.addReply).mockRejectedValue(new Error("Network Error"));
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Test Ticket Subject")).toBeInTheDocument();
+    });
+
+    const textarea = screen.getByPlaceholderText("Type your reply...");
+    fireEvent.change(textarea, { target: { value: "Failed submission content" } });
+
+    const saveButton = screen.getByText("Save as Note");
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(api.addReply).toHaveBeenCalled();
+    });
+
+    expect(alertMock).toHaveBeenCalledWith("Failed to add reply");
+    expect(textarea).toHaveValue("Failed submission content");
+
+    alertMock.mockRestore();
+  });
+
+  it("copies suggested reply content to composer textarea when Use This Reply is clicked", async () => {
+    const ticketWithSuggestedReply = {
+      ...mockTicket,
+      suggestedReply: "This is a lovely suggested reply.",
+    };
+
+    vi.mocked(api.getTicketById).mockResolvedValue(ticketWithSuggestedReply);
+    vi.mocked(api.getUsers).mockResolvedValue(mockUsers);
+
+    renderWithQuery(<TicketDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Suggested Reply:")).toBeInTheDocument();
+    });
+
+    const useButton = screen.getByText("Use This Reply");
+    fireEvent.click(useButton);
+
+    const textarea = screen.getByPlaceholderText("Type your reply...");
+    expect(textarea).toHaveValue("This is a lovely suggested reply.");
+  });
 });

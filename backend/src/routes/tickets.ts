@@ -183,6 +183,7 @@ router.post(
           sentViaEmail: sentViaEmail || false,
           ticketId: req.params.id,
           authorId: req.user!.id,
+          senderType: "AGENT",
         },
         include: { author: true },
       });

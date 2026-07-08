@@ -9,6 +9,8 @@ import Badge from "../components/Badge";
 import { formatDateTime } from "../lib/utils";
 import { Send, Save, Wand2, FileText, MessageSquare, Bot } from "lucide-react";
 import { TicketStatus, TicketCategory } from "../types";
+import TicketDetail from "../components/TicketDetail";
+import UpdateTicket from "../components/UpdateTicket";
 
 const TicketDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -170,21 +172,7 @@ const TicketDetailPage: React.FC = () => {
       <div className="grid grid-cols-3 gap-6">
         {/* Main Content */}
         <div className="col-span-2 space-y-6">
-          {/* Ticket Info */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <div className="mb-4">
-              <h1 className="text-2xl font-bold text-slate-900 mb-2">
-                {ticket.subject}
-              </h1>
-              <div className="flex items-center gap-4 text-sm text-slate-600">
-                <span>
-                  From: {ticket.fromName} ({ticket.fromEmail})
-                </span>
-                <span>Created: {formatDateTime(ticket.createdAt)}</span>
-              </div>
-            </div>
-            <p className="text-slate-700 whitespace-pre-wrap">{ticket.body}</p>
-          </div>
+          <TicketDetail ticket={ticket} />
 
           {/* AI Tools */}
           <div className="bg-blue-50 p-6 rounded-xl border border-blue-200">
@@ -257,9 +245,18 @@ const TicketDetailPage: React.FC = () => {
                   className="p-4 bg-slate-50 rounded-lg border border-slate-200"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <span className="font-medium text-slate-900">
-                      {reply.isAI ? "Bot" : reply.author?.name || "Unknown"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-slate-900">
+                        {reply.senderType === "AI" ? "Bot" : reply.author?.name || "Customer"}
+                      </span>
+                      <Badge variant={
+                        reply.senderType === "AGENT" ? "open" :
+                        reply.senderType === "AI" ? "processing" : "new"
+                      }>
+                        {reply.senderType === "AGENT" ? "Agent" :
+                         reply.senderType === "AI" ? "AI Bot" : "Customer"}
+                      </Badge>
+                    </div>
                     <span className="text-xs text-slate-600">
                       {formatDateTime(reply.createdAt)}
                     </span>
@@ -300,82 +297,16 @@ const TicketDetailPage: React.FC = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Status */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Status</h3>
-            <select
-              value={ticket.status}
-              onChange={(e) => handleStatusChange(e.target.value)}
-              disabled={updatingStatus}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-            >
-              {Object.values(TicketStatus).map((status) => (
-                <option key={status} value={status}>
-                  {status.charAt(0) + status.slice(1).toLowerCase()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Category</h3>
-            <select
-              value={ticket.category}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              disabled={updatingCategory}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-            >
-              {Object.values(TicketCategory).map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat.split("_").map(w => w.charAt(0) + w.slice(1).toLowerCase()).join(" ")}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Assigned Agent */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Assigned Agent</h3>
-            <select
-              value={ticket.assignedToId || ""}
-              onChange={(e) => handleAssigneeChange(e.target.value)}
-              disabled={updatingAssignee}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-            >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.role})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Info */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Info</h3>
-            <div className="space-y-3 text-sm">
-              <div>
-                <p className="text-slate-600">Source</p>
-                <p className="font-medium text-slate-900">{ticket.source}</p>
-              </div>
-              <div>
-                <p className="text-slate-600">AI Classified</p>
-                <p className="font-medium text-slate-900">
-                  {ticket.aiClassified ? "Yes" : "No"}
-                </p>
-              </div>
-              <div>
-                <p className="text-slate-600">AI Resolved</p>
-                <p className="font-medium text-slate-900">
-                  {ticket.aiResolved ? "Yes" : "No"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        <UpdateTicket
+          ticket={ticket}
+          users={users}
+          updatingStatus={updatingStatus}
+          updatingCategory={updatingCategory}
+          updatingAssignee={updatingAssignee}
+          onStatusChange={handleStatusChange}
+          onCategoryChange={handleCategoryChange}
+          onAssigneeChange={handleAssigneeChange}
+        />
       </div>
     </Layout>
   );

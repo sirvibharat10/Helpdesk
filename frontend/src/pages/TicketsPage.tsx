@@ -159,6 +159,18 @@ const TicketsPage: React.FC = () => {
         },
       },
       {
+        id: "assignee",
+        header: "Assignee",
+        cell: (info) => {
+          const ticket = info.row.original as any;
+          return ticket.assignedTo ? (
+            <span className="font-medium text-slate-700">{ticket.assignedTo.name}</span>
+          ) : (
+            <span className="text-slate-400 italic">Unassigned</span>
+          );
+        },
+      },
+      {
         accessorKey: "createdAt",
         header: "Created",
         cell: (info) => formatDate(info.getValue() as string),

@@ -67,16 +67,23 @@ model Ticket {
   updatedAt      DateTime       @updatedAt
 }
 
+enum ReplySenderType {
+  AGENT
+  CUSTOMER
+  AI
+}
+
 model Reply {
-  id             String   @id @default(cuid())
-  body           String   @db.Text
-  isAI           Boolean  @default(false)
-  sentViaEmail   Boolean  @default(false)
+  id             String          @id @default(cuid())
+  body           String          @db.Text
+  isAI           Boolean         @default(false)
+  sentViaEmail   Boolean         @default(false)
+  senderType     ReplySenderType @default(AGENT)
   ticketId       String
   authorId       String?
-  ticket         Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author         User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
-  createdAt      DateTime @default(now())
+  ticket         Ticket          @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author         User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt      DateTime        @default(now())
 }
 
 model KnowledgeBase {
