@@ -59,6 +59,14 @@ export const api = {
     return this.request(`/tickets?${params.toString()}`);
   },
 
+  getStats() {
+    return this.request("/tickets/stats");
+  },
+
+  getDailyStats() {
+    return this.request("/tickets/daily-stats");
+  },
+
   getTicketById(id: string) {
     return this.request(`/tickets/${id}`);
   },

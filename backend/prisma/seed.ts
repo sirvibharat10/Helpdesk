@@ -32,6 +32,19 @@ async function main() {
     },
   });
 
+  // Create AI agent
+  const aiPassword = await bcrypt.hash("aiagent123", 10);
+  const aiAgent = await prisma.user.upsert({
+    where: { email: "ai@sahayak.ai" },
+    update: {},
+    create: {
+      email: "ai@sahayak.ai",
+      password: aiPassword,
+      name: "AI",
+      role: "AGENT",
+    },
+  });
+
   // Create sample knowledge base articles
   await prisma.knowledgeBase.createMany({
     data: [

@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
 import Badge from "../components/Badge";
@@ -8,26 +17,20 @@ import { TicketStatus } from "../types";
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
+  const [dailyStats, setDailyStats] = useState<{ date: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response: any = await api.getTickets({ limit: "5" });
-        setTickets(response.tickets);
-
-        // Calculate stats
-        const allTickets: any = await api.getTickets({ limit: "1000" });
-        const allData = allTickets.tickets;
-
-        setStats({
-          total: allData.length,
-          open: allData.filter(
-            (t: any) => t.status === TicketStatus.OPEN || t.status === TicketStatus.NEW,
-          ).length,
-          resolved: allData.filter((t: any) => t.status === TicketStatus.RESOLVED).length,
-          avgTime: "2.5 hours",
-        });
+        const [recentRes, statsRes, dailyRes]: any = await Promise.all([
+          api.getTickets({ limit: "5" }),
+          api.getStats(),
+          api.getDailyStats(),
+        ]);
+        setTickets(recentRes.tickets);
+        setStats(statsRes);
+        setDailyStats(dailyRes);
       } catch (error) {
         console.error("Failed to fetch data:", error);
       } finally {
@@ -37,6 +40,17 @@ const DashboardPage: React.FC = () => {
 
     fetchData();
   }, []);
+
+  // Format "2026-07-09" → "Jul 9"
+  const formatDay = (dateStr: string) => {
+    const d = new Date(dateStr + "T00:00:00");
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  const chartData = dailyStats.map((d) => ({
+    ...d,
+    label: formatDay(d.date),
+  }));
 
   const getStatusBadgeVariant = (status: string): any => {
     switch (status) {
@@ -62,12 +76,13 @@ const DashboardPage: React.FC = () => {
       ) : (
         <>
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             {[
-              { label: "Total Tickets", value: stats?.total || 0 },
-              { label: "Open Tickets", value: stats?.open || 0 },
-              { label: "Resolved", value: stats?.resolved || 0 },
-              { label: "Avg Resolution", value: stats?.avgTime || "0h" },
+              { label: "Total Tickets", value: stats?.total ?? 0 },
+              { label: "Open Tickets", value: stats?.open ?? 0 },
+              { label: "AI Resolved", value: stats?.aiResolvedCount ?? 0 },
+              { label: "AI Resolved %", value: `${stats?.aiResolvedPercentage ?? 0}%` },
+              { label: "Avg Resolution", value: stats?.avgResolutionTime ?? "N/A" },
             ].map((stat, i) => (
               <div
                 key={i}
@@ -79,6 +94,48 @@ const DashboardPage: React.FC = () => {
                 </p>
               </div>
             ))}
+          </div>
+
+          {/* Daily Tickets Bar Chart */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <h3 className="text-lg font-semibold text-slate-900 mb-6">
+              Tickets per Day — Last 30 Days
+            </h3>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart
+                data={chartData}
+                margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
+                barCategoryGap="30%"
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tickLine={false}
+                  axisLine={false}
+                  interval={4}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "#64748b" }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={28}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f1f5f9" }}
+                  contentStyle={{
+                    borderRadius: "8px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                    fontSize: 13,
+                  }}
+                  formatter={(value: number) => [value, "Tickets"]}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
+                <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
 
           {/* Recent Tickets */}
@@ -138,3 +195,5 @@ const DashboardPage: React.FC = () => {
 };
 
 export default DashboardPage;
+
+

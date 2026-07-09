@@ -92,6 +92,8 @@ router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
 router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
   try {
     const data = CreateTicketSchema.parse(req.body);
+    const aiAgent = await prisma.user.findFirst({ where: { name: "AI", role: "AGENT" } });
+
     const ticket = await prisma.ticket.create({
       data: {
         subject: data.subject,
@@ -99,6 +101,7 @@ router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
         fromEmail: data.fromEmail,
         fromName: data.fromName,
         category: data.category || "GENERAL_QUESTION",
+        assignedToId: aiAgent?.id || null,
       },
       include: { replies: true },
     });
@@ -112,6 +115,127 @@ router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
     next(error);
   }
 });
+
+// Get dashboard stats
+router.get("/stats", authMiddleware, async (req: AuthRequest, res, next) => {
+  try {
+    const where: any = {};
+    if (req.user?.role === "AGENT") {
+      where.assignedToId = req.user.id;
+    }
+
+    const [total, open, resolved, aiResolvedCount, resolvedTickets] = await Promise.all([
+      prisma.ticket.count({ where }),
+      prisma.ticket.count({
+        where: {
+          ...where,
+          status: { in: ["NEW", "OPEN", "PROCESSING"] },
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          ...where,
+          status: "RESOLVED",
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          ...where,
+          aiResolved: true,
+        },
+      }),
+      prisma.ticket.findMany({
+        where: {
+          ...where,
+          status: "RESOLVED",
+        },
+        select: {
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
+    ]);
+
+    // Calculate percentage
+    const aiResolvedPercentage = total > 0 ? parseFloat(((aiResolvedCount / total) * 100).toFixed(1)) : 0;
+
+    // Calculate average resolution time
+    let avgResolutionTimeText = "N/A";
+    if (resolvedTickets.length > 0) {
+      const totalMs = resolvedTickets.reduce((sum, t) => {
+        return sum + (t.updatedAt.getTime() - t.createdAt.getTime());
+      }, 0);
+      const avgMs = totalMs / resolvedTickets.length;
+      
+      const avgMinutes = avgMs / (1000 * 60);
+      if (avgMinutes < 60) {
+        avgResolutionTimeText = `${Math.round(avgMinutes)}m`;
+      } else {
+        const avgHours = avgMinutes / 60;
+        if (avgHours < 24) {
+          avgResolutionTimeText = `${avgHours.toFixed(1)}h`;
+        } else {
+          const avgDays = avgHours / 24;
+          avgResolutionTimeText = `${avgDays.toFixed(1)}d`;
+        }
+      }
+    }
+
+    res.json({
+      total,
+      open,
+      resolved,
+      aiResolvedCount,
+      aiResolvedPercentage,
+      avgResolutionTime: avgResolutionTimeText,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get daily ticket counts for the past 30 days
+router.get("/daily-stats", authMiddleware, async (req: AuthRequest, res, next) => {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const where: any = {
+      createdAt: { gte: thirtyDaysAgo },
+    };
+    if (req.user?.role === "AGENT") {
+      where.assignedToId = req.user.id;
+    }
+
+    const tickets = await prisma.ticket.findMany({
+      where,
+      select: { createdAt: true },
+    });
+
+    // Build a map of date → count
+    const countMap: Record<string, number> = {};
+    for (const ticket of tickets) {
+      const dateKey = ticket.createdAt.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      countMap[dateKey] = (countMap[dateKey] ?? 0) + 1;
+    }
+
+    // Fill every day in the 30-day window, even those with 0 tickets
+    const result: { date: string; count: number }[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i);
+      const dateKey = d.toISOString().slice(0, 10);
+      result.push({ date: dateKey, count: countMap[dateKey] ?? 0 });
+    }
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 
 // Get ticket by ID
 router.get("/:id", authMiddleware, async (req: AuthRequest, res, next) => {
@@ -351,6 +475,8 @@ router.post("/incoming-email", async (req, res, next) => {
       }
     }
 
+    const aiAgent = await prisma.user.findFirst({ where: { name: "AI", role: "AGENT" } });
+
     const data = IncomingEmailSchema.parse(req.body);
 
     const ticket = await prisma.ticket.create({
@@ -363,6 +489,7 @@ router.post("/incoming-email", async (req, res, next) => {
         status: "NEW",
         category: "GENERAL_QUESTION",
         aiClassified: false,
+        assignedToId: aiAgent?.id || null,
       },
       include: { replies: true },
     });
