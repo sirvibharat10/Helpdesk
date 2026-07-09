@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 export const aiService = {
   async classifyTicket(subject: string, body: string): Promise<string> {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const prompt = `Classify this support ticket into one of these categories:
 - GENERAL_QUESTION
@@ -40,7 +40,7 @@ Respond with ONLY the category name, nothing else.`;
     conversationHistory?: string,
   ): Promise<string> {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const historyText = conversationHistory
         ? `\n\nCONVERSATION HISTORY:\n${conversationHistory}`
@@ -67,7 +67,7 @@ Provide only the summary, no additional text.`;
     knowledgeBase: string,
   ): Promise<string> {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
       const prompt = `You are a helpful support agent. Based on the knowledge base and the customer's ticket, draft a professional reply.
 
@@ -92,9 +92,14 @@ Draft a helpful, professional reply addressing the customer's issue. Use informa
     subject: string,
     body: string,
     knowledgeBase: string,
+    customerName?: string,
   ): Promise<{ canResolve: boolean; reply: string }> {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+
+      const nameInstructions = customerName
+        ? `The customer's name is "${customerName}". You MUST address the customer by their first name (e.g., "Hi [First Name],"). If the name is in "First Last" format, extract only the first name. If you cannot extract a single first name, use "Hi ${customerName},".`
+        : 'Address the customer politely (e.g., "Hi," or "Hello,").';
 
       const prompt = `Analyze if this support ticket can be automatically resolved using the knowledge base.
 
@@ -104,6 +109,11 @@ ${knowledgeBase}
 CUSTOMER TICKET:
 Subject: ${subject}
 Body: ${body}
+
+Instructions for the reply if it can be resolved:
+1. ${nameInstructions}
+2. Ensure the reply has a professional, customer-friendly, helpful, and polite tone.
+3. Make sure the reply is properly formatted with appropriate paragraph breaks.
 
 Respond in JSON format:
 {
@@ -145,7 +155,7 @@ Respond in JSON format:
         : "";
 
       const response = await generateText({
-        model: googleProvider("gemini-2.5-flash"),
+        model: googleProvider("gemini-3.5-flash"),
         prompt: `You are a professional support agent. Polish and improve this draft reply to a customer's support ticket.
 Make it grammatically correct, professional, friendly, clear, and concise, while keeping the original intent.
 

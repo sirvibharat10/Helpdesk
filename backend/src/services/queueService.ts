@@ -1,10 +1,15 @@
 import { PgBoss } from "pg-boss";
 import { PrismaClient } from "@prisma/client";
 import { aiService } from "./aiService.js";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const prisma = new PrismaClient();
-
 const boss = new PgBoss(process.env.DATABASE_URL || "");
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 boss.on("error", (error) => console.error("PgBoss error:", error));
 
@@ -23,16 +28,61 @@ export const queueService = {
           const { ticketId, subject, body } = job.data as any;
           console.log(`Processing background classification job for ticket: ${ticketId}`);
 
+          // Set status to PROCESSING as AI starts to classify/resolve it
+          const ticket = await prisma.ticket.update({
+            where: { id: ticketId },
+            data: { status: "PROCESSING" },
+          });
+
           const category = await aiService.classifyTicket(subject, body);
+          
+          let autoResolvedResult = { canResolve: false, reply: "" };
+          try {
+            const kbPath = path.join(__dirname, "../../knowledge-base.md");
+            if (fs.existsSync(kbPath)) {
+              const kbContent = fs.readFileSync(kbPath, "utf-8");
+              autoResolvedResult = await aiService.autoResolve(subject, body, kbContent, ticket.fromName);
+            } else {
+              console.warn(`Knowledge base file not found at ${kbPath}`);
+            }
+          } catch (kbError) {
+            console.error("Error running auto-resolve inside queue worker:", kbError);
+          }
+
+          const updateData: any = {};
           if (category) {
-            await prisma.ticket.update({
-              where: { id: ticketId },
+            updateData.category = category as any;
+            updateData.aiClassified = true;
+          }
+
+          if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
+            updateData.status = "RESOLVED";
+            updateData.aiResolved = true;
+          } else {
+            // If AI cannot resolve, status changes to OPEN
+            updateData.status = "OPEN";
+          }
+
+          await prisma.ticket.update({
+            where: { id: ticketId },
+            data: updateData,
+          });
+
+          if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
+            await prisma.reply.create({
               data: {
-                category: category as any,
-                aiClassified: true,
+                ticketId,
+                body: autoResolvedResult.reply,
+                isAI: true,
+                senderType: "AI",
+                sentViaEmail: true,
               },
             });
-            console.log(`Successfully classified ticket ${ticketId} as ${category}`);
+            console.log(`Successfully auto-resolved ticket ${ticketId} with AI reply`);
+          } else {
+            if (category) {
+              console.log(`Successfully classified ticket ${ticketId} as ${category} and set status to OPEN`);
+            }
           }
         }
       });
@@ -47,22 +97,53 @@ export const queueService = {
       console.log(`Enqueued ticket classification job ${jobId} for ticket ${ticketId}`);
     } catch (error) {
       console.error(`Failed to enqueue classification job for ticket ${ticketId}:`, error);
-      // Fallback: run classification inline in background on failure
-      aiService.classifyTicket(subject, body)
-        .then(async (category) => {
-          if (category) {
-            await prisma.ticket.update({
-              where: { id: ticketId },
-              data: {
-                category: category as any,
-                aiClassified: true,
-              },
-            });
-          }
-        })
-        .catch((err) => {
-          console.error(`Fallback background classification failed for ticket ${ticketId}:`, err);
+      // Fallback: run classification and auto-resolve inline in background on failure
+      try {
+        const ticket = await prisma.ticket.update({
+          where: { id: ticketId },
+          data: { status: "PROCESSING" },
         });
+
+        const category = await aiService.classifyTicket(subject, body);
+        let autoResolvedResult = { canResolve: false, reply: "" };
+        const kbPath = path.join(__dirname, "../../knowledge-base.md");
+        if (fs.existsSync(kbPath)) {
+          const kbContent = fs.readFileSync(kbPath, "utf-8");
+          autoResolvedResult = await aiService.autoResolve(subject, body, kbContent, ticket.fromName);
+        }
+
+        const updateData: any = {};
+        if (category) {
+          updateData.category = category as any;
+          updateData.aiClassified = true;
+        }
+
+        if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
+          updateData.status = "RESOLVED";
+          updateData.aiResolved = true;
+        } else {
+          updateData.status = "OPEN";
+        }
+
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: updateData,
+        });
+
+        if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
+          await prisma.reply.create({
+            data: {
+              ticketId,
+              body: autoResolvedResult.reply,
+              isAI: true,
+              senderType: "AI",
+              sentViaEmail: true,
+            },
+          });
+        }
+      } catch (fallbackError) {
+        console.error(`Fallback background classification/resolution failed for ticket ${ticketId}:`, fallbackError);
+      }
     }
   },
 };

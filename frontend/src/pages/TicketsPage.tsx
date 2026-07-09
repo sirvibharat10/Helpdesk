@@ -117,7 +117,14 @@ const TicketsPage: React.FC = () => {
   }, [pagination]);
 
   useEffect(() => {
-    fetchTickets();
+    fetchTickets(true);
+  }, [filters]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      fetchTickets(false);
+    }, 5000);
+    return () => clearInterval(timer);
   }, [filters]);
 
   const columns = React.useMemo<ColumnDef<any>[]>(
@@ -197,16 +204,16 @@ const TicketsPage: React.FC = () => {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const response: any = await api.getTickets(filters);
       setTickets(response.tickets);
       setTotalRows(response.pagination?.total ?? 0);
     } catch (error) {
       console.error("Failed to fetch tickets:", error);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   };
 
@@ -215,7 +222,7 @@ const TicketsPage: React.FC = () => {
       await api.createTicket(data);
       setCreateDialogOpen(false);
       reset();
-      fetchTickets();
+      fetchTickets(true);
     } catch (error) {
       alert("Failed to create ticket");
     }

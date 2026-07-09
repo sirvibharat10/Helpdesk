@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PgBoss } from "pg-boss";
 
 const prisma = new PrismaClient();
 
@@ -124,6 +125,7 @@ const tickets = [
   { subject: "Cannot add CC recipients to ticket replies", body: "When replying to a ticket, I want to CC our manager. There's no CC field visible in the reply box.", fromEmail: "anna.cc@teamwork.com", fromName: "Anna CC", status: "NEW", category: "TECHNICAL_QUESTION", source: "EMAIL" },
   { subject: "Branding customization not reflecting in emails", body: "I uploaded our company logo in branding settings but outgoing emails still show the default logo.", fromEmail: "ben.brand@marketing.com", fromName: "Ben Brand", status: "RESOLVED", category: "TECHNICAL_QUESTION", source: "MANUAL" },
   { subject: "How do I handle GDPR deletion requests?", body: "A customer has requested deletion of all their personal data. Is there a GDPR data erasure tool built in?", fromEmail: "cara.gdpr@privacy.eu", fromName: "Cara GDPR", status: "OPEN", category: "GENERAL_QUESTION", source: "EMAIL" },
+  { subject: "Password Reset", body: "I forgot my password. How can I reset it?", fromEmail: "forgetful_seeder@example.com", fromName: "Forgetful Seeder", status: "NEW", category: "GENERAL_QUESTION", source: "EMAIL" },
 ];
 
 async function main() {
@@ -158,6 +160,26 @@ async function main() {
   }
 
   console.log(`✓ Seeded ${created} tickets successfully.`);
+
+  // Enqueue the specific test ticket for background AI classification/resolution
+  const testTicket = await prisma.ticket.findFirst({
+    where: {
+      fromEmail: "forgetful_seeder@example.com",
+      subject: "Password Reset",
+    },
+  });
+
+  if (testTicket) {
+    const boss = new PgBoss(process.env.DATABASE_URL || "");
+    await boss.start();
+    await boss.send("classify-ticket", {
+      ticketId: testTicket.id,
+      subject: testTicket.subject,
+      body: testTicket.body,
+    });
+    await boss.stop();
+    console.log("✓ Enqueued test ticket classification job.");
+  }
 }
 
 main()

@@ -32,7 +32,9 @@ router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
       sortOrder = "desc",
     } = req.query;
 
-    const where: any = {};
+    const where: any = {
+      aiResolved: false,
+    };
 
     if (status) where.status = status;
     if (category) where.category = category;
