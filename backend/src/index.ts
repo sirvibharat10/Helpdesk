@@ -18,6 +18,7 @@ import { errorHandler } from "./middleware.js";
 
 // Services
 import { emailPollerService } from "./services/emailPollerService.js";
+import { queueService } from "./services/queueService.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -60,6 +61,9 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Start the background queue service
+  await queueService.start();
 
   // Start email polling if credentials are configured
   if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {

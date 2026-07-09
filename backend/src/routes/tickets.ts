@@ -11,28 +11,11 @@ import {
 } from "../validators.js";
 import { aiService } from "../services/aiService.js";
 import { emailService } from "../services/emailService.js";
+import { queueService } from "../services/queueService.js";
 import { z } from "zod";
 
 const router = Router();
 const prisma = new PrismaClient();
-
-function classifyTicketInBackground(ticketId: string, subject: string, body: string) {
-  aiService.classifyTicket(subject, body)
-    .then(async (category) => {
-      if (category) {
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: {
-            category: category as any,
-            aiClassified: true,
-          },
-        });
-      }
-    })
-    .catch((err) => {
-      console.error(`Background AI classification failed for ticket ${ticketId}:`, err);
-    });
-}
 
 // Get all tickets (with filters)
 router.get("/", authMiddleware, async (req: AuthRequest, res, next) => {
@@ -119,7 +102,7 @@ router.post("/", authMiddleware, async (req: AuthRequest, res, next) => {
     });
 
     if (!data.category) {
-      classifyTicketInBackground(ticket.id, ticket.subject, ticket.body);
+      await queueService.enqueueClassification(ticket.id, ticket.subject, ticket.body);
     }
 
     res.status(201).json(ticket);
@@ -382,7 +365,7 @@ router.post("/incoming-email", async (req, res, next) => {
       include: { replies: true },
     });
 
-    classifyTicketInBackground(ticket.id, ticket.subject, ticket.body);
+    await queueService.enqueueClassification(ticket.id, ticket.subject, ticket.body);
 
     res.status(201).json(ticket);
   } catch (error) {
