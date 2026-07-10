@@ -1,6 +1,7 @@
 import React from "react";
 import { TicketStatus, TicketCategory } from "../types";
 import { formatStatus, formatCategory } from "../lib/utils";
+import Select from "./Select";
 
 interface UpdateTicketProps {
   ticket: {
@@ -35,53 +36,44 @@ const UpdateTicket: React.FC<UpdateTicketProps> = ({
       {/* Status */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Status</h3>
-        <select
+        <Select
           value={ticket.status}
           onChange={(e) => onStatusChange(e.target.value)}
           disabled={updatingStatus}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-        >
-          {Object.values(TicketStatus).map((status) => (
-            <option key={status} value={status}>
-              {formatStatus(status)}
-            </option>
-          ))}
-        </select>
+          options={Object.values(TicketStatus).map((status) => ({
+            value: status,
+            label: formatStatus(status),
+          }))}
+        />
       </div>
 
       {/* Category */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Category</h3>
-        <select
+        <Select
           value={ticket.category}
           onChange={(e) => onCategoryChange(e.target.value)}
           disabled={updatingCategory}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-        >
-          {Object.values(TicketCategory).map((cat) => (
-            <option key={cat} value={cat}>
-              {formatCategory(cat)}
-            </option>
-          ))}
-        </select>
+          options={Object.values(TicketCategory).map((cat) => ({
+            value: cat,
+            label: formatCategory(cat),
+          }))}
+        />
       </div>
 
       {/* Assigned Agent */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
         <h3 className="font-semibold text-slate-900 mb-3">Assigned Agent</h3>
-        <select
+        <Select
           value={ticket.assignedToId || ""}
           onChange={(e) => onAssigneeChange(e.target.value)}
           disabled={updatingAssignee}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white disabled:opacity-50"
-        >
-          <option value="">Unassigned</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} ({u.role})
-            </option>
-          ))}
-        </select>
+          placeholder="Unassigned"
+          options={users.map((u) => ({
+            value: u.id,
+            label: `${u.name} (${u.role})`,
+          }))}
+        />
       </div>
 
       {/* Info */}

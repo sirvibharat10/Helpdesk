@@ -9,10 +9,10 @@ async function main() {
   // Create admin user
   const adminPassword = await bcrypt.hash("admin123", 10);
   const admin = await prisma.user.upsert({
-    where: { email: "admin@sahayak.ai" },
+    where: { email: "admin@helpdesk.ai" },
     update: {},
     create: {
-      email: "admin@sahayak.ai",
+      email: "admin@helpdesk.ai",
       password: adminPassword,
       name: "Admin User",
       role: "ADMIN",
@@ -22,10 +22,10 @@ async function main() {
   // Create sample agent
   const agentPassword = await bcrypt.hash("agent123", 10);
   const agent = await prisma.user.upsert({
-    where: { email: "agent@sahayak.ai" },
+    where: { email: "agent@helpdesk.ai" },
     update: {},
     create: {
-      email: "agent@sahayak.ai",
+      email: "agent@helpdesk.ai",
       password: agentPassword,
       name: "Agent User",
       role: "AGENT",
@@ -35,10 +35,10 @@ async function main() {
   // Create AI agent
   const aiPassword = await bcrypt.hash("aiagent123", 10);
   const aiAgent = await prisma.user.upsert({
-    where: { email: "ai@sahayak.ai" },
+    where: { email: "ai@helpdesk.ai" },
     update: {},
     create: {
-      email: "ai@sahayak.ai",
+      email: "ai@helpdesk.ai",
       password: aiPassword,
       name: "AI",
       role: "AGENT",

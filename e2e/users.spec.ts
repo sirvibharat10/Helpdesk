@@ -6,7 +6,7 @@ test.describe("User Management CRUD E2E Tests", () => {
     await page.goto("/login");
 
     // Fill credentials
-    await page.fill('input[type="email"]', "admin@sahayak.ai");
+    await page.fill('input[type="email"]', "admin@helpdesk.ai");
     await page.fill('input[type="password"]', "admin123");
 
     // Click Login
@@ -23,7 +23,7 @@ test.describe("User Management CRUD E2E Tests", () => {
 
     const uniqueId = Date.now();
     const testName = `E2E Agent ${uniqueId}`;
-    const testEmail = `e2e_agent_${uniqueId}@sahayak.ai`;
+    const testEmail = `e2e_agent_${uniqueId}@helpdesk.ai`;
     const updatedName = `E2E Agent Updated ${uniqueId}`;
 
     // --- CREATE ---

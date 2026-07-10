@@ -11,7 +11,9 @@ import Badge from "../components/Badge";
 import Dialog from "../components/Dialog";
 import Textarea from "../components/Textarea";
 import { formatDate, formatStatus, formatCategory } from "../lib/utils";
+import Select from "../components/Select";
 import { TicketStatus, TicketCategory } from "../types";
+import { Plus, Trash2, AlertTriangle, CheckCircle2, X } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,6 +30,18 @@ const TicketsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [totalRows, setTotalRows] = useState(0);
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<any>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const createTicketSchema = z.object({
     subject: z.string().min(1, "Subject is required"),
@@ -167,7 +181,7 @@ const TicketsPage: React.FC = () => {
       },
       {
         id: "assignee",
-        header: "Assignee",
+        header: "Assigned",
         cell: (info) => {
           const ticket = info.row.original as any;
           return ticket.assignedTo ? (
@@ -181,6 +195,26 @@ const TicketsPage: React.FC = () => {
         accessorKey: "createdAt",
         header: "Created",
         cell: (info) => formatDate(info.getValue() as string),
+      },
+      {
+        id: "actions",
+        header: "Actions",
+        cell: (info) => {
+          const ticket = info.row.original as any;
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setTicketToDelete(ticket);
+                setDeleteDialogOpen(true);
+              }}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all active:scale-90"
+              aria-label="Delete ticket"
+            >
+              <Trash2 size={16} />
+            </button>
+          );
+        },
       },
     ],
     []
@@ -228,6 +262,36 @@ const TicketsPage: React.FC = () => {
     }
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!ticketToDelete) return;
+    setIsDeleting(true);
+    try {
+      await api.deleteTicket(ticketToDelete.id);
+      setToast({ type: "success", message: `Ticket #${ticketToDelete.id.slice(-6).toUpperCase()} deleted successfully.` });
+      setDeleteDialogOpen(false);
+      setTicketToDelete(null);
+      fetchTickets(true);
+    } catch (error: any) {
+      console.error("Failed to delete ticket:", error);
+      setToast({ type: "error", message: error.message || "Failed to delete ticket." });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const statusFilterValue =
+    (columnFilters.find((f) => f.id === "status")?.value as string) ?? "";
+  const categoryFilterValue =
+    (columnFilters.find((f) => f.id === "category")?.value as string) ?? "";
+
+  const updateColumnFilter = (id: "status" | "category", value: string) => {
+    setColumnFilters((prev) =>
+      value
+        ? [...prev.filter((f) => f.id !== id), { id, value }]
+        : prev.filter((f) => f.id !== id),
+    );
+  };
+
   const getStatusBadgeVariant = (status: string): any => {
     switch (status) {
       case TicketStatus.NEW:
@@ -247,18 +311,55 @@ const TicketsPage: React.FC = () => {
 
   return (
     <Layout title="Tickets">
-      <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
-        {/* Left Column: Tickets Table (main content) */}
-        <div className="lg:col-span-5 space-y-6">
-          {loading ? (
-            <div className="flex items-center justify-center p-12 bg-white rounded-xl shadow-sm border border-slate-200">
-              Loading...
-            </div>
-          ) : (
-            <>
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[minmax(260px,1fr)_180px_200px_auto] xl:items-center">
+            <Input
+              placeholder="Search tickets..."
+              value={filters.search}
+              onChange={(e) => {
+                setFilters({ ...filters, search: e.target.value });
+                setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+              }}
+            />
+            <Select
+              value={statusFilterValue}
+              onChange={(e) => updateColumnFilter("status", e.target.value)}
+              placeholder="All Statuses"
+              aria-label="Filter by status"
+              options={Object.values(TicketStatus).map((status) => ({
+                value: status,
+                label: formatStatus(status),
+              }))}
+            />
+            <Select
+              value={categoryFilterValue}
+              onChange={(e) => updateColumnFilter("category", e.target.value)}
+              placeholder="All Categories"
+              aria-label="Filter by category"
+              options={Object.values(TicketCategory).map((cat) => ({
+                value: cat,
+                label: formatCategory(cat),
+              }))}
+            />
+            <Button
+              onClick={() => setCreateDialogOpen(true)}
+              className="w-full justify-center xl:w-auto xl:whitespace-nowrap"
+            >
+              <Plus size={18} /> New Ticket
+            </Button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center p-12 bg-white rounded-xl shadow-sm border border-slate-200">
+            Loading...
+          </div>
+        ) : (
+          <>
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-[860px]">
                     <thead className="bg-slate-50 border-b border-slate-200">
                       {table.getHeaderGroups().map((headerGroup) => (
                         <tr key={headerGroup.id}>
@@ -315,7 +416,7 @@ const TicketsPage: React.FC = () => {
               </div>
 
               {/* Pagination controls */}
-              <div className="flex items-center justify-between px-6 py-4 border border-slate-200 bg-white rounded-xl">
+              <div className="flex flex-col gap-4 px-6 py-4 border border-slate-200 bg-white rounded-xl sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm text-slate-500">
                   Showing{" "}
                   {totalRows === 0
@@ -333,7 +434,7 @@ const TicketsPage: React.FC = () => {
                   >
                     &larr; Previous
                   </button>
-                  <span className="text-sm text-slate-600">
+                  <span className="text-sm text-slate-600 whitespace-nowrap">
                     Page {pagination.pageIndex + 1} of {table.getPageCount()}
                   </span>
                   <button
@@ -345,74 +446,8 @@ const TicketsPage: React.FC = () => {
                   </button>
                 </div>
               </div>
-            </>
-          )}
-        </div>
-
-        {/* Right Column: Sidebar Filters */}
-        <div className="space-y-6">
-          {/* Actions Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-            <Button onClick={() => setCreateDialogOpen(true)} className="w-full">
-              + New Ticket
-            </Button>
-            <Input
-              placeholder="Search..."
-              value={filters.search}
-              onChange={(e) =>
-                setFilters({ ...filters, search: e.target.value })
-              }
-            />
-          </div>
-
-          {/* Status Filter Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Status</h3>
-            <select
-              value={(columnFilters.find((f) => f.id === "status")?.value as string) ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setColumnFilters((prev) =>
-                  val
-                    ? [...prev.filter((f) => f.id !== "status"), { id: "status", value: val }]
-                    : prev.filter((f) => f.id !== "status")
-                );
-              }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
-            >
-              <option value="">All Statuses</option>
-              {Object.values(TicketStatus).map((status) => (
-                <option key={status} value={status}>
-                  {formatStatus(status)}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Category Filter Card */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-3">Category</h3>
-            <select
-              value={(columnFilters.find((f) => f.id === "category")?.value as string) ?? ""}
-              onChange={(e) => {
-                const val = e.target.value;
-                setColumnFilters((prev) =>
-                  val
-                    ? [...prev.filter((f) => f.id !== "category"), { id: "category", value: val }]
-                    : prev.filter((f) => f.id !== "category")
-                );
-              }}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
-            >
-              <option value="">All Categories</option>
-              {Object.values(TicketCategory).map((cat) => (
-                <option key={cat} value={cat}>
-                  {formatCategory(cat)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Create Ticket Dialog */}
@@ -461,6 +496,68 @@ const TicketsPage: React.FC = () => {
           </Button>
         </form>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Ticket?"
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100">
+            <AlertTriangle className="h-5 w-5 shrink-0" />
+            <div className="text-xs font-semibold leading-relaxed">
+              Warning: This action is permanent and cannot be undone. All replies associated with this ticket will be deleted immediately.
+            </div>
+          </div>
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete <span className="font-semibold text-slate-900">"{ticketToDelete?.subject}"</span>?
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleDeleteConfirm}
+              className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 border border-red-700 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+            >
+              {isDeleting ? (
+                <>
+                  <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </button>
+          </div>
+        </div>
+      </Dialog>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-white rounded-xl border shadow-lg border-slate-200 animate-fade-in">
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+          )}
+          <span className="text-sm font-semibold text-slate-800">{toast.message}</span>
+          <button
+            onClick={() => setToast(null)}
+            className="p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
+            aria-label="Dismiss notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
     </Layout>
   );
 };

@@ -10,7 +10,7 @@ async function run() {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      email: "admin@sahayak.ai",
+      email: "admin@helpdesk.ai",
       password: "admin123",
     }),
   });

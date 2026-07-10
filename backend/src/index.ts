@@ -65,8 +65,6 @@ app.listen(PORT, async () => {
   // Start the background queue service
   await queueService.start();
 
-  // Start email polling if credentials are configured
-  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    emailPollerService.startPolling();
-  }
+  // Start email polling (IMAP + SMTP)
+  await emailPollerService.startPolling();
 });

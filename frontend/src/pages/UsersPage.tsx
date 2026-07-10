@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Shield, User, Key, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import Layout from "../components/Layout";
@@ -10,6 +10,7 @@ import Button from "../components/Button";
 import Input from "../components/Input";
 import Dialog from "../components/Dialog";
 import UsersTable from "../components/UsersTable";
+import Select from "../components/Select";
 import { UserRole } from "../types";
 import { createUserSchema } from "core";
 
@@ -33,7 +34,7 @@ const UsersPage: React.FC = () => {
   
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
 
-  // TanStack Query: Fetch all users
+  // Fetch all users
   const {
     data: users = [],
     isLoading: loading,
@@ -43,7 +44,7 @@ const UsersPage: React.FC = () => {
     queryFn: () => api.getUsers() as Promise<any[]>,
   });
 
-  // TanStack Query Mutations
+  // Mutations
   const createUserMutation = useMutation({
     mutationFn: (data: any) => api.createUser(data),
     onSuccess: () => {
@@ -95,10 +96,13 @@ const UsersPage: React.FC = () => {
     register: registerEdit,
     handleSubmit: handleSubmitEdit,
     reset: resetEdit,
+    watch: watchEdit,
     formState: { errors: editErrors },
   } = useForm<UpdateUserFormValues>({
     resolver: zodResolver(updateUserSchema),
   });
+
+  const editRoleValue = watchEdit("role");
 
   const handleCreateUser = (data: CreateUserFormValues) => {
     createUserMutation.mutate(data);
@@ -142,29 +146,32 @@ const UsersPage: React.FC = () => {
 
   return (
     <Layout title="Users">
-      <div className="space-y-6">
-        {/* Top bar */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">User Management</h3>
-            <p className="text-sm text-slate-500">Create, manage, and configure access roles for organization users.</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* Top bar (Redesigned Header) */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-r from-sky-50 via-blue-50/40 to-white p-6 md:p-8 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-400/5 via-transparent to-transparent opacity-70"></div>
+          <div className="relative z-10">
+            <h3 className="text-2xl font-extrabold text-slate-950 tracking-tight">Organization Directory</h3>
+            <p className="text-slate-600 text-sm mt-1 max-w-xl">
+              Create, manage, and configure access roles or system credentials for support agents and workspace administrators.
+            </p>
           </div>
-          <Button
+          <button
             onClick={() => {
               createUserMutation.reset();
               resetCreate();
               setCreateDialogOpen(true);
             }}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all active:scale-95 z-10 cursor-pointer"
           >
-            <UserPlus size={18} />
-            Add User
-          </Button>
+            <UserPlus size={16} />
+            Add New User
+          </button>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200">
+          <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 text-sm">
             {error instanceof Error ? error.message : "Failed to load users"}
           </div>
         )}
@@ -191,7 +198,7 @@ const UsersPage: React.FC = () => {
             </div>
           )}
           <Input
-            label="Name"
+            label="Full Name"
             required
             placeholder="John Doe"
             {...registerCreate("name")}
@@ -205,27 +212,31 @@ const UsersPage: React.FC = () => {
             {...registerCreate("email")}
             error={createErrors.email?.message}
           />
-
           <Input
-            label="Password"
+            label="Temporary Password"
             type="password"
             required
-            placeholder="••••••"
+            placeholder="••••••••"
             {...registerCreate("password")}
             error={createErrors.password?.message}
           />
+          
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button
+            <button
               type="button"
-              variant="secondary"
               onClick={() => setCreateDialogOpen(false)}
+              className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
               disabled={actionLoading}
             >
               Cancel
-            </Button>
-            <Button type="submit" loading={actionLoading}>
-              Create User
-            </Button>
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-blue-750 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+              disabled={actionLoading}
+            >
+              {actionLoading ? "Creating..." : "Create User"}
+            </button>
           </div>
         </form>
       </Dialog>
@@ -244,7 +255,7 @@ const UsersPage: React.FC = () => {
               </div>
             )}
             <Input
-              label="Name"
+              label="Full Name"
               required
               placeholder="John Doe"
               {...registerEdit("name")}
@@ -258,38 +269,42 @@ const UsersPage: React.FC = () => {
               {...registerEdit("email")}
               error={editErrors.email?.message}
             />
-            <div className="w-full">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
-              <select
-                {...registerEdit("role")}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent focus:ring-blue-900 transition-colors bg-white text-sm"
-              >
-                <option value={UserRole.AGENT}>Agent</option>
-                <option value={UserRole.ADMIN}>Admin</option>
-              </select>
-              {editErrors.role?.message && (
-                <p className="text-red-600 text-sm mt-1">{editErrors.role.message}</p>
-              )}
-            </div>
+            
+            <Select
+              label="Workspace Role"
+              options={[
+                { value: UserRole.AGENT, label: "Agent" },
+                { value: UserRole.ADMIN, label: "Admin" },
+              ]}
+              value={editRoleValue}
+              {...registerEdit("role")}
+              error={editErrors.role?.message}
+            />
+
             <Input
-              label="Password (leave blank to keep current)"
+              label="Update Password (leave blank to keep current)"
               type="password"
-              placeholder="••••••"
+              placeholder="••••••••"
               {...registerEdit("password")}
               error={editErrors.password?.message}
             />
+
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <Button
+              <button
                 type="button"
-                variant="secondary"
                 onClick={() => setEditDialogOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 disabled={actionLoading}
               >
                 Cancel
-              </Button>
-              <Button type="submit" loading={actionLoading}>
-                Save Changes
-              </Button>
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 border border-blue-750 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Saving..." : "Save Changes"}
+              </button>
             </div>
           </form>
         )}
@@ -299,7 +314,7 @@ const UsersPage: React.FC = () => {
       <Dialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        title="Confirm User Deletion"
+        title="Delete User"
       >
         {selectedUser && (
           <div className="space-y-4">
@@ -308,29 +323,32 @@ const UsersPage: React.FC = () => {
                 {deleteUserMutation.error instanceof Error ? deleteUserMutation.error.message : "An error occurred"}
               </div>
             )}
-            <p className="text-slate-600 text-sm">
+            <div className="flex items-center gap-3 p-3 bg-red-50 text-red-700 rounded-lg border border-red-100">
+              <AlertTriangle className="h-5 w-5 shrink-0" />
+              <div className="text-xs font-semibold leading-relaxed">
+                Warning: This action is permanent and cannot be undone. All database records associated with this profile will be unassigned.
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
               Are you sure you want to delete user <strong className="text-slate-900">{selectedUser.name}</strong> ({selectedUser.email})?
             </p>
-            <p className="text-red-600 text-xs bg-red-50 p-3 rounded-lg border border-red-200">
-              This action cannot be undone. Any tickets or replies assigned or written by this user will remain, but will no longer reference this user profile.
-            </p>
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <Button
+              <button
                 type="button"
-                variant="secondary"
                 onClick={() => setDeleteDialogOpen(false)}
+                className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
                 disabled={actionLoading}
               >
                 Cancel
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant="danger"
-                loading={actionLoading}
+                className="px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-750 border border-red-700 rounded-lg shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                disabled={actionLoading}
                 onClick={handleDeleteUser}
               >
-                Delete User
-              </Button>
+                {actionLoading ? "Deleting..." : "Delete User"}
+              </button>
             </div>
           </div>
         )}
@@ -340,4 +358,3 @@ const UsersPage: React.FC = () => {
 };
 
 export default UsersPage;
-

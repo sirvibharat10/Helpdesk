@@ -9,7 +9,7 @@ test.describe("Support Email Ticket Ingestion E2E Tests", () => {
   test.beforeEach(async ({ page }) => {
     // Login as Admin
     await page.goto("/login");
-    await page.fill('input[type="email"]', "admin@sahayak.ai");
+    await page.fill('input[type="email"]', "admin@helpdesk.ai");
     await page.fill('input[type="password"]', "admin123");
     await page.click('button[type="submit"]');
     await expect(page).toHaveURL("/dashboard");

@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 import { PrismaClient } from "@prisma/client";
 import { aiService } from "./aiService.js";
+import { emailService } from "./emailService.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,29 +63,45 @@ export const queueService = {
             if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
               updateData.status = "RESOLVED";
               updateData.aiResolved = true;
+              const aiAgent = await prisma.user.findFirst({ where: { name: "AI", role: "AGENT" } });
+              if (aiAgent) {
+                updateData.assignedToId = aiAgent.id;
+              }
             } else {
               // If AI cannot resolve, status changes to OPEN and we unassign from the AI agent
               updateData.status = "OPEN";
               updateData.assignedToId = null;
             }
 
-            await prisma.ticket.update({
-              where: { id: ticketId },
-              data: updateData,
-            });
-
             if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
-              await prisma.reply.create({
-                data: {
-                  ticketId,
-                  body: autoResolvedResult.reply,
-                  isAI: true,
-                  senderType: "AI",
-                  sentViaEmail: true,
-                },
-              });
+              await prisma.$transaction([
+                prisma.ticket.update({
+                  where: { id: ticketId },
+                  data: updateData,
+                }),
+                prisma.reply.create({
+                  data: {
+                    ticketId,
+                    body: autoResolvedResult.reply,
+                    isAI: true,
+                    senderType: "AI",
+                    sentViaEmail: true,
+                  },
+                }),
+              ]);
+              // Send the AI reply to the customer via SMTP
+              await emailService.sendTicketReply(
+                ticket.fromEmail,
+                ticket.subject,
+                autoResolvedResult.reply,
+                ticketId,
+              );
               console.log(`Successfully auto-resolved ticket ${ticketId} with AI reply`);
             } else {
+              await prisma.ticket.update({
+                where: { id: ticketId },
+                data: updateData,
+              });
               if (category) {
                 console.log(`Successfully classified ticket ${ticketId} as ${category} and set status to OPEN`);
               }
@@ -142,20 +159,32 @@ export const queueService = {
           updateData.assignedToId = null;
         }
 
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: updateData,
-        });
-
         if (autoResolvedResult.canResolve && autoResolvedResult.reply) {
-          await prisma.reply.create({
-            data: {
-              ticketId,
-              body: autoResolvedResult.reply,
-              isAI: true,
-              senderType: "AI",
-              sentViaEmail: true,
-            },
+          await prisma.$transaction([
+            prisma.ticket.update({
+              where: { id: ticketId },
+              data: updateData,
+            }),
+            prisma.reply.create({
+              data: {
+                ticketId,
+                body: autoResolvedResult.reply,
+                isAI: true,
+                senderType: "AI",
+                sentViaEmail: true,
+              },
+            }),
+          ]);
+          await emailService.sendTicketReply(
+            ticket.fromEmail,
+            ticket.subject,
+            autoResolvedResult.reply,
+            ticketId,
+          );
+        } else {
+          await prisma.ticket.update({
+            where: { id: ticketId },
+            data: updateData,
           });
         }
       } catch (fallbackError) {

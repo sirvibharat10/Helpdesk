@@ -1,42 +1,51 @@
-# Stage 1: Build frontend
-FROM node:20-alpine as frontend-build
-
-WORKDIR /app/frontend
-COPY frontend/package*.json ./
-RUN npm ci
-COPY frontend ./
-RUN npm run build
-
-# Stage 2: Build backend
-FROM node:20-alpine as backend-build
-
-WORKDIR /app/backend
-COPY backend/package*.json ./
-RUN npm ci
-COPY backend ./
-RUN npm run build
-
-# Stage 3: Production
-FROM node:20-alpine
+# Stage 1: Build stage
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Install production dependencies
+# Copy monorepo configuration and package files
+COPY package*.json ./
+COPY core/package*.json ./core/
 COPY backend/package*.json ./backend/
-RUN cd backend && npm ci --omit=dev
+COPY frontend/package*.json ./frontend/
 
-# Copy built backend
-COPY --from=backend-build /app/backend/dist ./backend/dist
+# Install all dependencies (including devDependencies)
+RUN npm ci
 
-# Copy Prisma
+# Copy source code
+COPY core ./core
+COPY backend ./backend
+COPY frontend ./frontend
+
+# Generate Prisma Client
+RUN cd backend && npx prisma generate
+
+# Build frontend and backend
+RUN npm run build
+
+# Stage 2: Production runner stage
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Copy monorepo configuration and package files for production dependency installation
+COPY package*.json ./
+COPY core/package*.json ./core/
+COPY backend/package*.json ./backend/
+
+# Install only production dependencies
+RUN npm ci --omit=dev
+
+# Copy database schema and migrations
 COPY backend/prisma ./backend/prisma
+RUN cd backend && npx prisma generate
 
-# Copy built frontend
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
-
-# Copy root files
-COPY backend/.env* ./
+# Copy built artifacts from builder stage
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/frontend/dist ./frontend/dist
+COPY --from=builder /app/core/src ./core/src
 
 EXPOSE 3001
 
-CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && cd .. && node backend/dist/index.js"]
+# Run database migrations and start the application
+CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && node --experimental-strip-types dist/index.js"]
