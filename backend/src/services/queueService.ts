@@ -7,16 +7,23 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const prisma = new PrismaClient();
-const boss = new PgBoss(process.env.DATABASE_URL || "");
+let boss: PgBoss | null = null;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-boss.on("error", (error) => console.error("PgBoss error:", error));
-
 export const queueService = {
   async start() {
     try {
+      const dbUrl = process.env.DATABASE_URL;
+      if (!dbUrl) {
+        console.warn("⚠️ DATABASE_URL is not set in environment variables. PgBoss queue service will not run.");
+        return;
+      }
+
+      boss = new PgBoss(dbUrl);
+      boss.on("error", (error) => console.error("PgBoss error:", error));
+
       await boss.start();
       console.log("PgBoss started successfully");
 
@@ -126,6 +133,9 @@ export const queueService = {
 
   async enqueueClassification(ticketId: string, subject: string, body: string) {
     try {
+      if (!boss) {
+        throw new Error("PgBoss is not initialized (DATABASE_URL is missing)");
+      }
       const jobId = await boss.send("classify-ticket", { ticketId, subject, body });
       console.log(`Enqueued ticket classification job ${jobId} for ticket ${ticketId}`);
     } catch (error) {
