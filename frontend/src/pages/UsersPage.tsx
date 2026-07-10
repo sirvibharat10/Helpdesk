@@ -12,7 +12,8 @@ import Dialog from "../components/Dialog";
 import UsersTable from "../components/UsersTable";
 import Select from "../components/Select";
 import { UserRole } from "../types";
-import { createUserSchema } from "core";
+import { createUserSchema } from "../lib/schemas";
+
 
 const updateUserSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
