@@ -297,7 +297,7 @@ const DashboardPage: React.FC = () => {
                             fontSize: 12,
                             fontWeight: 500,
                           }}
-                          formatter={(value: number) => [value, "Tickets"]}
+                          formatter={(value) => [Number(value), "Tickets"]}
                         />
                         <Area
                           type="monotone"
@@ -338,7 +338,7 @@ const DashboardPage: React.FC = () => {
                             fontSize: 12,
                             fontWeight: 500,
                           }}
-                          formatter={(value: number) => [value, "Tickets"]}
+                          formatter={(value) => [Number(value), "Tickets"]}
                         />
                         <Bar dataKey="count" fill="#6366f1" radius={[4, 4, 0, 0]} />
                       </BarChart>
