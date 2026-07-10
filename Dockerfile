@@ -1,6 +1,8 @@
 # Stage 1: Build stage
 FROM node:22-alpine AS builder
 
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
 # Copy monorepo configuration and package files
@@ -25,6 +27,8 @@ RUN npm run build
 
 # Stage 2: Production runner stage
 FROM node:22-alpine
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
