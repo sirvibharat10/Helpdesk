@@ -48,4 +48,5 @@ COPY --from=builder /app/core/src ./core/src
 EXPOSE 3001
 
 # Run database migrations and start the application
-CMD ["sh", "-c", "cd backend && npx prisma migrate deploy && node --experimental-strip-types dist/index.js"]
+CMD ["sh", "-c", "cd backend && npx prisma db push && node --experimental-strip-types dist/index.js"]
+
