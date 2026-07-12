@@ -1,4 +1,8 @@
 import "dotenv/config";
+import dns from "dns";
+
+// Force Node's DNS resolver to prioritize IPv4 over IPv6 globally (fixes Railway outbound IPv6 ENETUNREACH issues)
+dns.setDefaultResultOrder("ipv4first");
 
 // Clean environment variables (remove surrounding quotes from docker/deployment/dashboard values)
 for (const key in process.env) {
@@ -67,6 +71,17 @@ app.use(errorHandler);
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
+
+  // Diagnostic SMTP Transporter Options Logging
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = process.env.SMTP_PORT || "587";
+  if (smtpUser) {
+    console.log(`📧 SMTP Transporter configured for user: ${smtpUser} via ${smtpHost}:${smtpPort}`);
+    console.log(`   DNS Preference: IPv4 (forced first)`);
+  } else {
+    console.log("⚠️ SMTP Transporter is NOT configured (SMTP_USER/GMAIL_USER missing)");
+  }
 
   // Start the background queue service
   await queueService.start();
