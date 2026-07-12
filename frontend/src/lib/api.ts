@@ -1,4 +1,26 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+function sanitizeApiUrl(url: string | undefined): string {
+  if (!url) return "/api";
+  
+  let cleaned = url.replace(/^["']|["']$/g, "").trim();
+  
+  if (cleaned.startsWith("/")) {
+    return cleaned;
+  }
+  
+  if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://") && !cleaned.startsWith("//")) {
+    cleaned = `https://${cleaned}`;
+  }
+  
+  if (!cleaned.endsWith("/api") && !cleaned.endsWith("/api/")) {
+    cleaned = cleaned.endsWith("/") ? cleaned.slice(0, -1) : cleaned;
+    cleaned = `${cleaned}/api`;
+  }
+  
+  return cleaned;
+}
+
+export const API_BASE_URL = sanitizeApiUrl(import.meta.env.VITE_API_URL);
+
 
 export const api = {
   async request<T>(
