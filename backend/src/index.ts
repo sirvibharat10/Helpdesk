@@ -1,4 +1,13 @@
 import "dotenv/config";
+
+// Clean environment variables (remove surrounding quotes from docker/deployment/dashboard values)
+for (const key in process.env) {
+  const val = process.env[key];
+  if (typeof val === "string") {
+    process.env[key] = val.replace(/^["']|["']$/g, "").trim();
+  }
+}
+
 import express from "express";
 import cors from "cors";
 import { fileURLToPath } from "url";
