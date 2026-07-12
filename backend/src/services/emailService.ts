@@ -18,6 +18,7 @@ function createTransporter() {
       rejectUnauthorized: false, // allow self-signed certs in dev
     },
     family: 4, // Force IPv4 to prevent Railway IPv6 connection timeouts
+    connectionFamily: 4, // Force IPv4 in Nodemailer SMTP connection options
   } as any);
 }
 
