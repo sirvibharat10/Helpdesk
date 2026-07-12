@@ -17,11 +17,12 @@ function createTransporter() {
     tls: {
       rejectUnauthorized: false, // allow self-signed certs in dev
     },
-  });
+    family: 4, // Force IPv4 to prevent Railway IPv6 connection timeouts
+  } as any);
 }
 
 const fromName = process.env.SMTP_FROM_NAME || process.env.EMAIL_FROM_NAME || "My HelpDesk Support";
-const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.GMAIL_USER || "admin@helpdesk.ai";
+const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || process.env.GMAIL_USER || "admin@helpdesk.ai";
 const fromAddress = `"${fromName}" <${fromEmail}>`;
 
 export const emailService = {
