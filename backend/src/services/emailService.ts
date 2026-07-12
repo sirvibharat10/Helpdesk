@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
 
 // Create Gmail SMTP transporter
 function createTransporter() {
@@ -8,6 +9,11 @@ function createTransporter() {
   if (!user || !pass) {
     return null;
   }
+
+  // Ensure DNS resolver prioritizes IPv4 over IPv6
+  try {
+    dns.setDefaultResultOrder("ipv4first");
+  } catch (e) {}
 
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -39,6 +45,9 @@ export const emailService = {
         console.log("SMTP not configured (SMTP_USER / SMTP_PASS missing) — skipping email");
         return true;
       }
+
+      const opts = (transporter as any).options;
+      console.log(`📧 [DEBUG] sendTicketReply using host=${opts.host}, port=${opts.port}, secure=${opts.secure}, family=${opts.family}, connectionFamily=${opts.connectionFamily}`);
 
       const htmlBody = replyBody.replace(/\n/g, "<br>");
 
@@ -163,6 +172,9 @@ export const emailService = {
     try {
       const transporter = createTransporter();
       if (!transporter) return true;
+
+      const opts = (transporter as any).options;
+      console.log(`📧 [DEBUG] sendAutoReplyAcknowledgement using host=${opts.host}, port=${opts.port}, secure=${opts.secure}, family=${opts.family}, connectionFamily=${opts.connectionFamily}`);
 
       const firstName = fromName.trim().split(/\s+/)[0];
 
