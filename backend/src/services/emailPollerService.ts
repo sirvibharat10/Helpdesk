@@ -39,7 +39,7 @@ async function processEmail(parsed: any, uid: number): Promise<boolean> {
   }
 
   // Guard: skip our own outgoing emails (loop prevention)
-  const ownEmail = (process.env.GMAIL_USER || "").toLowerCase();
+  const ownEmail = (process.env.GMAIL_USER || process.env.SMTP_USER || "").toLowerCase();
   if (fromEmail === ownEmail) {
     log(`⏭️  Skipping UID ${uid} — sent by ourselves (loop prevention)`);
     return false;
@@ -110,11 +110,11 @@ async function processEmail(parsed: any, uid: number): Promise<boolean> {
 // ─── poll function ────────────────────────────────────────────────────────────
 
 async function pollOnce(): Promise<void> {
-  const user = process.env.GMAIL_USER || "";
-  const pass = process.env.GMAIL_APP_PASSWORD || "";
+  const user = process.env.GMAIL_USER || process.env.SMTP_USER || "";
+  const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "";
 
   if (!user || !pass) {
-    console.warn("IMAP: GMAIL_USER or GMAIL_APP_PASSWORD not set — skipping poll");
+    console.warn("IMAP: GMAIL_USER or SMTP_USER not set — skipping poll");
     return;
   }
 
@@ -143,10 +143,10 @@ async function pollOnce(): Promise<void> {
     const mb = await client.mailboxOpen(mailbox);
     log(`📂 Opened mailbox: ${mailbox} (${mb.exists} total messages)`);
 
-    // ── KEY FIX: Only fetch UNSEEN emails received within the last 24 hours ──
-    // This prevents processing old unread newsletters from months ago.
+    // ── Only fetch UNSEEN emails received within the last 7 days ──
+    // This prevents processing old unread newsletters from months ago while ensuring timezone resilience.
     const since = new Date();
-    since.setDate(since.getDate() - 1); // last 24 hours
+    since.setDate(since.getDate() - 7); // last 7 days
 
     const unseenUids: number[] = await client.search(
       { seen: false, since },
@@ -154,7 +154,7 @@ async function pollOnce(): Promise<void> {
     ) as number[];
 
     if (unseenUids.length === 0) {
-      log(`📭 No new unread emails in the last 24 hours`);
+      log(`📭 No new unread emails in the last 7 days`);
       await client.logout();
       return;
     }
@@ -216,11 +216,11 @@ async function pollOnce(): Promise<void> {
 export const emailPollerService = {
   async startPolling(intervalMs?: number) {
     const pollInterval = intervalMs ?? parseInt(process.env.IMAP_POLL_INTERVAL_MS || "60000");
-    const user = process.env.GMAIL_USER || "";
-    const pass = process.env.GMAIL_APP_PASSWORD || "";
+    const user = process.env.GMAIL_USER || process.env.SMTP_USER || "";
+    const pass = process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "";
 
     if (!user || !pass) {
-      console.log("⚠️  Email polling requires GMAIL_USER and GMAIL_APP_PASSWORD in .env");
+      console.log("⚠️  Email polling requires GMAIL_USER/SMTP_USER and GMAIL_APP_PASSWORD/SMTP_PASS in env");
       return;
     }
 
