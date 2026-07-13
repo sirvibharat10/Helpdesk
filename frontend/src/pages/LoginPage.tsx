@@ -65,23 +65,23 @@ const LoginPage: React.FC = () => {
       </div>
 
       {/* Centered Login Card Area */}
-      <div className="w-full max-w-[480px] my-auto py-10">
-        <div className="bg-white rounded-[28px] shadow-2xl shadow-slate-200/50 border border-slate-200/50 p-12 md:p-14 space-y-10 hover:shadow-3xl transition-all duration-300">
+      <div className="w-full max-w-[480px] my-auto py-12">
+        <div className="bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.03)] border border-slate-100/80 py-16 px-12 md:px-14 space-y-12 transition-all duration-300">
           
           {/* Header */}
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-5">
             <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-100 px-3.5 py-1.5 rounded-full">
               <Sparkles size={11} className="animate-pulse text-blue-600" />
               AI Agent Desk
             </span>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none pt-1">Welcome Back 👋</h2>
               <p className="text-sm text-slate-500 font-medium leading-relaxed">Sign in to continue managing your AI Help Desk.</p>
             </div>
           </div>
 
           {/* Form */}
-          <form noValidate onSubmit={handleSubmit(handleLogin)} className="space-y-8">
+          <form noValidate onSubmit={handleSubmit(handleLogin)} className="space-y-10">
             {error && (
               <div className="p-4 bg-red-50 text-red-700 rounded-2xl text-xs font-semibold border border-red-100/60 leading-normal animate-shake">
                 ⚠️ {error}
@@ -89,8 +89,8 @@ const LoginPage: React.FC = () => {
             )}
 
             {/* Email field */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="space-y-3.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider leading-none">
                 Work Email Address
               </label>
               <div className="relative group">
@@ -101,7 +101,7 @@ const LoginPage: React.FC = () => {
                   type="email"
                   placeholder="you@company.com"
                   {...register("email")}
-                  className={`w-full pl-11 pr-4 py-4 bg-slate-50/50 border rounded-2xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-sm font-medium ${
+                  className={`w-full pl-12 pr-4 py-[18px] bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-sm font-medium ${
                     errors.email
                       ? "border-red-300 focus:border-red-400 focus:ring-red-200"
                       : "border-slate-200/80 focus:border-blue-500 focus:ring-blue-100/80"
@@ -114,8 +114,8 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Password field */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="space-y-3.5">
+              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider leading-none">
                 Account Password
               </label>
               <div className="relative group">
@@ -126,7 +126,7 @@ const LoginPage: React.FC = () => {
                   type="password"
                   placeholder="••••••••"
                   {...register("password")}
-                  className={`w-full pl-11 pr-4 py-4 bg-slate-50/50 border rounded-2xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-sm font-medium ${
+                  className={`w-full pl-12 pr-4 py-[18px] bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:outline-none focus:ring-2 focus:bg-white transition-all text-sm font-medium ${
                     errors.password
                       ? "border-red-300 focus:border-red-400 focus:ring-red-200"
                       : "border-slate-200/80 focus:border-blue-500 focus:ring-blue-100/80"
@@ -139,7 +139,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex justify-between items-center text-xs font-bold text-slate-500 pt-1">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 pt-2">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -160,7 +160,7 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-500/10 hover:shadow-xl transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
+              className="w-full py-[16px] bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-lg shadow-blue-500/10 hover:shadow-xl transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 text-sm"
             >
               {loading ? (
                 <>
