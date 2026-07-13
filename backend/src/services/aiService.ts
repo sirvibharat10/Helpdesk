@@ -69,7 +69,13 @@ Provide only the summary, no additional text.`;
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
 
-      const prompt = `You are a helpful support agent. Based on the knowledge base and the customer's ticket, draft a professional reply.
+      const prompt = `You are a helpful support agent responding on behalf of My HelpDesk Support. Based on the knowledge base and the customer's ticket, draft a professional reply.
+
+IMPORTANT BRANDING RULES:
+- You represent "My HelpDesk Support". Never mention or reference "Code with Mosh" anywhere in the reply.
+- Always end the reply with the signature:
+  Best regards,
+  My HelpDesk Support
 
 KNOWLEDGE BASE:
 ${knowledgeBase}
@@ -101,7 +107,13 @@ Draft a helpful, professional reply addressing the customer's issue. Use informa
         ? `The customer's name is "${customerName}". You MUST address the customer by their first name (e.g., "Hi [First Name],"). If the name is in "First Last" format, extract only the first name. If you cannot extract a single first name, use "Hi ${customerName},".`
         : 'Address the customer politely (e.g., "Hi," or "Hello,").';
 
-      const prompt = `Analyze if this support ticket can be automatically resolved using the knowledge base.
+      const prompt = `Analyze if this support ticket can be automatically resolved using the knowledge base. You are responding on behalf of My HelpDesk Support.
+
+IMPORTANT BRANDING RULES:
+- You represent "My HelpDesk Support". Never mention or reference "Code with Mosh" anywhere in the reply.
+- Always end the reply with the signature:
+  Best regards,
+  My HelpDesk Support
 
 KNOWLEDGE BASE:
 ${knowledgeBase}
@@ -114,6 +126,7 @@ Instructions for the reply if it can be resolved:
 1. ${nameInstructions}
 2. Ensure the reply has a professional, customer-friendly, helpful, and polite tone.
 3. Make sure the reply is properly formatted with appropriate paragraph breaks.
+4. End with the signature: "Best regards,\nMy HelpDesk Support"
 
 Respond in JSON format:
 {
@@ -156,8 +169,14 @@ Respond in JSON format:
 
       const response = await generateText({
         model: googleProvider("gemini-3.5-flash"),
-        prompt: `You are a professional support agent. Polish and improve this draft reply to a customer's support ticket.
+        prompt: `You are a professional support agent at My HelpDesk Support. Polish and improve this draft reply to a customer's support ticket.
 Make it grammatically correct, professional, friendly, clear, and concise, while keeping the original intent.
+
+IMPORTANT BRANDING RULES:
+- You represent "My HelpDesk Support". Never mention or reference "Code with Mosh" anywhere in the reply.
+- If no agent-specific signature is provided below, end the reply with:
+  Best regards,
+  My HelpDesk Support
 
 TICKET INFO:
 Subject: ${ticketSubject}
