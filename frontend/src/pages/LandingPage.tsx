@@ -407,63 +407,136 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 md:py-28 bg-white border-t border-slate-200/60">
-        <div className="max-w-5xl mx-auto px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <h2 className="text-3xl font-extrabold text-slate-950 tracking-tight">Flexible SaaS Pricing</h2>
-            <p className="text-sm text-slate-500">
-              Pick the tier that fits your incoming support ticket volume.
+      <section id="pricing" className="py-24 md:py-32 bg-slate-50/50 border-t border-slate-200/60 relative overflow-hidden">
+        {/* Decorative background grid/gradients */}
+        <div className="absolute inset-0 pointer-events-none opacity-40">
+          <div className="absolute top-12 left-1/4 w-96 h-96 bg-blue-100/60 rounded-full blur-3xl" />
+          <div className="absolute bottom-12 right-1/4 w-96 h-96 bg-indigo-100/60 rounded-full blur-3xl" />
+        </div>
+
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 relative z-10 space-y-16">
+          <div className="text-center max-w-3xl mx-auto space-y-4">
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest bg-blue-50 border border-blue-100 px-3.5 py-1.5 rounded-full">
+              Transparent Pricing
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none pt-2">
+              Plans Built to Scale Your Support
+            </h2>
+            <p className="text-base text-slate-500 max-w-2xl mx-auto font-medium">
+              Automate ticket classification, AI response drafting, and email queues with state-of-the-art Gemini AI technology.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
             {[
               {
-                name: "Monthly Billing",
+                name: "Starter",
                 price: "₹1,499",
-                period: "/month",
-                desc: "Billed month-to-month. Cancel anytime.",
-                features: ["Unlimited incoming email polling", "Gemini-3.5 AI support", "Up to 5 agent accounts", "Standard dashboard metrics"],
+                period: "/mo",
+                desc: "Essential AI automation features for small help desks.",
+                icon: <Zap size={22} className="text-blue-600" />,
+                iconBg: "bg-blue-50 border border-blue-100",
+                features: [
+                  "Unlimited incoming email polling",
+                  "Gemini-3.5 AI support",
+                  "Up to 5 agent accounts",
+                  "Standard dashboard metrics",
+                  "Basic automatic categorization",
+                ],
+                buttonText: "Get Started Now",
+                popular: false,
               },
               {
-                name: "Annual Billing",
+                name: "Professional",
                 price: "₹1,199",
-                period: "/month",
-                desc: "Billed annually. Perfect for growing teams.",
-                badge: "Save 20%",
-                features: ["Unlimited incoming email polling", "Gemini-3.5 AI support", "Up to 25 agent accounts", "Advanced analytics dashboard", "Priority SMTP outbox support"],
+                period: "/mo",
+                desc: "Advanced intelligence & scaling for growing support teams.",
+                badge: "Save 20% Billed Annually",
+                icon: <Sparkles size={22} className="text-indigo-600" />,
+                iconBg: "bg-indigo-50 border border-indigo-100",
+                features: [
+                  "Everything in Starter plan",
+                  "Up to 25 agent accounts",
+                  "Advanced analytics dashboard",
+                  "Priority SMTP outbox support",
+                  "AI auto-resolution response",
+                ],
+                buttonText: "Start Free Trial",
+                popular: true,
+              },
+              {
+                name: "Enterprise",
+                price: "Custom",
+                period: "",
+                desc: "Tailored AI model fine-tuning and strict SLA support.",
+                icon: <Shield size={22} className="text-slate-700" />,
+                iconBg: "bg-slate-100 border border-slate-200",
+                features: [
+                  "Dedicated Gemini model tuning",
+                  "Custom database & SMTP relays",
+                  "Unlimited agent seats",
+                  "99.9% uptime SLA guarantee",
+                  "Dedicated success manager",
+                ],
+                buttonText: "Contact Sales",
+                popular: false,
               },
             ].map((plan, i) => (
               <div
                 key={i}
-                className="bg-slate-50/50 p-8 rounded-2xl border border-slate-200/70 flex flex-col justify-between relative group hover:bg-white hover:shadow-md transition-all duration-300"
+                className={`relative flex flex-col justify-between p-8 rounded-3xl transition-all duration-300 transform hover:-translate-y-1.5 ${
+                  plan.popular
+                    ? "bg-white border-2 border-blue-600 shadow-xl shadow-blue-500/5 ring-1 ring-blue-600/10"
+                    : "bg-white/80 backdrop-blur-sm border border-slate-200/80 shadow-md shadow-slate-100/50 hover:bg-white hover:border-slate-300 hover:shadow-lg"
+                }`}
               >
-                {plan.badge && (
-                  <span className="absolute top-4 right-4 bg-emerald-100 border border-emerald-200 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase">
-                    {plan.badge}
-                  </span>
-                )}
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 mb-1.5">{plan.name}</h3>
-                  <p className="text-xs text-slate-400 mb-6">{plan.desc}</p>
-                  <div className="flex items-baseline mb-6">
-                    <span className="text-3xl font-extrabold text-slate-950 tracking-tight">{plan.price}</span>
-                    <span className="text-sm font-semibold text-slate-400 ml-1">{plan.period}</span>
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-4 py-1 rounded-full shadow-md shadow-blue-500/20 border border-blue-400">
+                    Most Popular
                   </div>
-                  <ul className="space-y-2.5 text-xs text-slate-600 mb-8 border-t border-slate-200/60 pt-6">
+                )}
+                
+                <div>
+                  <div className="flex items-center justify-between mb-5">
+                    <div className={`${plan.iconBg} p-3 rounded-2xl flex items-center justify-center`}>
+                      {plan.icon}
+                    </div>
+                    {plan.badge && (
+                      <span className="text-[9px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg uppercase tracking-wide">
+                        {plan.badge}
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">{plan.name}</h3>
+                  <p className="text-xs text-slate-500 mb-6 font-medium leading-relaxed">{plan.desc}</p>
+                  
+                  <div className="flex items-baseline mb-6">
+                    <span className="text-4xl font-extrabold text-slate-950 tracking-tight">{plan.price}</span>
+                    {plan.period && (
+                      <span className="text-sm font-semibold text-slate-400 ml-1.5">{plan.period}</span>
+                    )}
+                  </div>
+
+                  <ul className="space-y-3.5 text-xs text-slate-600 mb-8 border-t border-slate-100 pt-6">
                     {plan.features.map((feat, idx) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <CheckCircle size={14} className="text-emerald-500 shrink-0" />
-                        {feat}
+                      <li key={idx} className="flex items-start gap-2.5">
+                        <CheckCircle size={15} className="text-emerald-500 shrink-0 mt-0.5" />
+                        <span className="leading-normal font-medium">{feat}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
+
                 <button
                   onClick={() => setDemoDialogOpen(true)}
-                  className="w-full py-2.5 text-center text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm cursor-pointer"
+                  className={`w-full py-3.5 text-center text-xs font-bold rounded-2xl transition-all duration-200 cursor-pointer ${
+                    plan.popular
+                      ? "text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-500/10 hover:shadow-lg"
+                      : "text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200/60"
+                  }`}
                 >
-                  Book Demo
+                  {plan.buttonText}
                 </button>
               </div>
             ))}
