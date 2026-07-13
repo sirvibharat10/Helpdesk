@@ -6,7 +6,7 @@ import { z } from "zod";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import Input from "../components/Input";
-import { Sparkles, ArrowLeft, Shield, User } from "lucide-react";
+import { Sparkles, ArrowLeft } from "lucide-react";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -49,13 +49,7 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const fillCredentials = (role: "ADMIN" | "AGENT") => {
-    if (role === "ADMIN") {
-      reset({ email: "admin@helpdesk.ai", password: "admin123" });
-    } else {
-      reset({ email: "agent@helpdesk.ai", password: "agent123" });
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-tr from-sky-100 via-blue-50 to-indigo-100 flex items-center justify-center p-6 relative overflow-hidden font-sans select-none">
@@ -78,8 +72,8 @@ const LoginPage: React.FC = () => {
         <div className="bg-white/85 backdrop-blur-md rounded-3xl border border-white/70 shadow-2xl p-8 relative overflow-hidden group">
           
           {/* Card header */}
-          <div className="mb-8 text-center space-y-1.5">
-            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-600 tracking-wider uppercase mb-1">
+          <div className="mb-6 text-center space-y-2">
+            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-blue-600 tracking-wider uppercase">
               <Sparkles size={12} className="animate-pulse" />
               Secure Authentication Gate
             </span>
@@ -91,7 +85,7 @@ const LoginPage: React.FC = () => {
           <form
             noValidate
             onSubmit={handleSubmit(handleLogin)}
-            className="space-y-5"
+            className="space-y-6"
           >
             {error && (
               <div className="p-3.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold border border-red-100/60 leading-normal animate-shake">
@@ -137,7 +131,7 @@ const LoginPage: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/10 transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-500/10 transition-all cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -149,42 +143,6 @@ const LoginPage: React.FC = () => {
               )}
             </button>
           </form>
-
-          {/* Demo credentials picker block */}
-          <div className="mt-8 pt-6 border-t border-slate-200/50 space-y-4">
-            <span className="block text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Quick Fill Demo Accounts
-            </span>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => fillCredentials("ADMIN")}
-                className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/60 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 text-left rounded-xl transition-all cursor-pointer group/btn"
-              >
-                <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500 group-hover/btn:bg-blue-100 group-hover/btn:text-blue-600 shrink-0">
-                  <Shield size={14} />
-                </div>
-                <div>
-                  <span className="block text-xs font-bold text-slate-800 group-hover/btn:text-blue-800">Admin</span>
-                  <span className="block text-[9px] text-slate-400">admin@helpdesk.ai</span>
-                </div>
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => fillCredentials("AGENT")}
-                className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/60 hover:bg-blue-50 hover:border-blue-200 hover:text-blue-700 text-left rounded-xl transition-all cursor-pointer group/btn"
-              >
-                <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500 group-hover/btn:bg-blue-100 group-hover/btn:text-blue-600 shrink-0">
-                  <User size={14} />
-                </div>
-                <div>
-                  <span className="block text-xs font-bold text-slate-800 group-hover/btn:text-blue-800">Agent</span>
-                  <span className="block text-[9px] text-slate-400">agent@helpdesk.ai</span>
-                </div>
-              </button>
-            </div>
-          </div>
 
         </div>
       </div>
