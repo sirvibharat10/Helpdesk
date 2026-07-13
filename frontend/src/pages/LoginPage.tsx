@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
 
       {/* Centered Login Card Area */}
       <div className="w-full max-w-[480px] my-auto py-12">
-        <div className="bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.03)] border border-slate-100/80 py-16 px-12 md:px-14 space-y-12 transition-all duration-300">
+        <div className="bg-white rounded-[32px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.03)] border border-slate-100/80 py-20 px-12 md:px-14 space-y-12 transition-all duration-300">
           
           {/* Header */}
           <div className="text-center space-y-5">
@@ -81,7 +81,7 @@ const LoginPage: React.FC = () => {
           </div>
 
           {/* Form */}
-          <form noValidate onSubmit={handleSubmit(handleLogin)} className="space-y-10">
+          <form noValidate onSubmit={handleSubmit(handleLogin)} className="space-y-6">
             {error && (
               <div className="p-4 bg-red-50 text-red-700 rounded-2xl text-xs font-semibold border border-red-100/60 leading-normal animate-shake">
                 ⚠️ {error}
@@ -89,7 +89,7 @@ const LoginPage: React.FC = () => {
             )}
 
             {/* Email field */}
-            <div className="space-y-3.5">
+            <div className="space-y-5">
               <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider leading-none">
                 Work Email Address
               </label>
@@ -114,8 +114,8 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Password field */}
-            <div className="space-y-3.5">
-              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider leading-none">
+            <div className="space-y-5">
+              <label className="block text-xs font-bold text-slate-505 uppercase tracking-wider leading-none">
                 Account Password
               </label>
               <div className="relative group">
@@ -139,7 +139,7 @@ const LoginPage: React.FC = () => {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex justify-between items-center text-xs font-bold text-slate-500 pt-2">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-505 pt-2">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
